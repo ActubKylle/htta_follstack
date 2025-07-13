@@ -41,7 +41,9 @@
 
         @routes
         @viteReactRefresh
-        @vite(['resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
+        {{-- CRITICAL FIX: Only include the main app.tsx and app.css here. --}}
+        {{-- Inertia's client-side resolver (in app.tsx) will handle loading specific pages dynamically. --}}
+        @vite(['resources/js/app.tsx', 'resources/css/app.css'])
         @inertiaHead
     </head>
     <body class="font-sans antialiased">

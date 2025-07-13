@@ -27,6 +27,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 // ADMIN ROUTES - Protected by 'admin' middleware
 Route::middleware(['auth', 'verified', 'admin'])->group(function () {
+
+    Route::get('/admin/dashboard', function () {
+        return Inertia::render('Admin/dashboard'); // This is your general user dashboard
+    })->name('admin.dashboard');
+
+
     Route::get('/admin/enrollments', [EnrollmentController::class, 'index'])->name('admin.enrollments'); // Changed route path and name
     // Add other admin-specific routes here (e.g., /admin/learners, /admin/programs)
         Route::get('/admin/enrollments/{learner}', [EnrollmentController::class, 'show'])->name('admin.enrollment.show');

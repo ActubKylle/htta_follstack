@@ -32,8 +32,20 @@ interface FormData {
     facebook_account: string;
     contact_no: string;
 
-    // Changed educational attainment to a single string field for radio buttons
-    educational_attainment_level: string;
+    // Educational attainment fields aligned with the Laravel EducationalAttainment model
+    no_grade_completed: boolean;
+    elementary_undergraduate: boolean;
+    elementary_graduate: boolean;
+    junior_high_k12: boolean;
+    senior_high_k12: boolean;
+    high_school_undergraduate: boolean;
+    high_school_graduate: boolean;
+    post_secondary_non_tertiary_technical_vocational_undergraduate: boolean;
+    post_secondary_non_tertiary_technical_vocational_course_graduate: boolean;
+    college_undergraduate: boolean;
+    college_graduate: boolean;
+    masteral: boolean;
+    doctorate: boolean;
 
     classifications: number[];
     other_classification_details: string;
@@ -66,7 +78,7 @@ interface InputFieldProps {
     label: string;
     type?: 'text' | 'email' | 'password' | 'number' | 'date' | 'select' | 'textarea' | 'radio' | 'checkbox' | 'file';
     value?: string | number | boolean;
-    onChange?: (e: React.ChangeEvent<any>) => void; // Using 'any' for simplicity in generic onChange
+    onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
     error?: string;
     placeholder?: string;
     min?: string;
@@ -75,15 +87,15 @@ interface InputFieldProps {
     isChecked?: boolean;
     onCheckboxChange?: React.ChangeEventHandler<HTMLInputElement>;
     name?: string;
-    className?: string; // Added for additional styling
+    className?: string;
 }
 
 // Reusable Input Field Component
 const InputField: React.FC<InputFieldProps> = ({
     id, label, type = 'text', value, onChange, error, placeholder, min, max, options, isChecked, onCheckboxChange, name, className
 }) => (
-    <div className="mb-4">
-        <label htmlFor={id} className="block text-gray-900 text-sm font-semibold mb-2"> {/* Changed to text-gray-900 */}
+    <div className="mb-5">
+        <label htmlFor={id} className="block text-gray-900 text-sm font-semibold mb-2">
             {label}
         </label>
         {type === 'select' ? (
@@ -92,7 +104,7 @@ const InputField: React.FC<InputFieldProps> = ({
                 name={id}
                 value={value as string}
                 onChange={onChange}
-                className={`w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-htta-blue focus:border-transparent transition duration-200 text-gray-900 ${error ? 'border-red-500' : ''} ${className}`}
+                className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-3 focus:ring-htta-blue focus:border-htta-blue transition duration-300 ease-in-out text-gray-900 shadow-sm ${error ? 'border-red-500' : ''} ${className}`}
             >
                 <option value="">Select...</option>
                 {options?.map(option => (
@@ -105,9 +117,9 @@ const InputField: React.FC<InputFieldProps> = ({
                 name={id}
                 value={value as string}
                 onChange={onChange}
-                className={`w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-htta-blue focus:border-transparent transition duration-200 text-gray-900 ${error ? 'border-red-500' : ''} ${className}`}
+                className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-3 focus:ring-htta-blue focus:border-htta-blue transition duration-300 ease-in-out text-gray-900 shadow-sm ${error ? 'border-red-500' : ''} ${className}`}
                 placeholder={placeholder}
-                rows={3}
+                rows={4}
             />
         ) : type === 'checkbox' || type === 'radio' ? (
             <input
@@ -116,7 +128,7 @@ const InputField: React.FC<InputFieldProps> = ({
                 name={name || id}
                 checked={isChecked}
                 onChange={onCheckboxChange}
-                className={`mr-2 h-4 w-4 text-htta-blue rounded border-gray-300 focus:ring-htta-blue ${className}`}
+                className={`mr-2 h-5 w-5 text-htta-blue rounded border-gray-300 focus:ring-htta-blue focus:ring-2 transition duration-200 ease-in-out ${className}`}
                 value={value as string}
             />
         ) : type === 'file' ? (
@@ -125,7 +137,7 @@ const InputField: React.FC<InputFieldProps> = ({
                 id={id}
                 name={id}
                 onChange={onChange}
-                className={`w-full p-3 border border-gray-300 rounded-md file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-htta-blue file:text-dark hover:file:bg-htta-green-dark focus:outline-none focus:ring-2 focus:ring-htta-blue focus:border-transparent transition duration-200 ${error ? 'border-red-500' : ''} ${className}`}
+                className={`w-full p-3 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-htta-blue file:text-dark hover:file:bg-htta-green-dark focus:outline-none focus:ring-3 focus:ring-htta-blue focus:border-htta-blue transition duration-300 ease-in-out shadow-sm ${error ? 'border-red-500' : ''} ${className}`}
             />
         ) : (
             <input
@@ -137,7 +149,7 @@ const InputField: React.FC<InputFieldProps> = ({
                 placeholder={placeholder}
                 min={min}
                 max={max}
-                className={`w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-htta-blue focus:border-transparent transition duration-200 text-gray-900 ${error ? 'border-red-500' : ''} ${className}`}
+                className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-3 focus:ring-htta-blue focus:border-htta-blue transition duration-300 ease-in-out text-gray-900 shadow-sm ${error ? 'border-red-500' : ''} ${className}`}
             />
         )}
         {error && <p className="text-red-500 text-xs italic mt-1">{error}</p>}
@@ -155,8 +167,20 @@ const RegistrationForm: React.FC = () => {
         number_street: '', city_municipality: '', barangay: '', district: '',
         province: '', region: '', facebook_account: '', contact_no: '',
 
-        // Changed educational attainment to a single string field for radio buttons
-        educational_attainment_level: '',
+        // Initializing all educational attainment fields to false, aligning with migration defaults
+        no_grade_completed: false,
+        elementary_undergraduate: false,
+        elementary_graduate: false,
+        junior_high_k12: false,
+        senior_high_k12: false,
+        high_school_undergraduate: false,
+        high_school_graduate: false,
+        post_secondary_non_tertiary_technical_vocational_undergraduate: false,
+        post_secondary_non_tertiary_technical_vocational_course_graduate: false,
+        college_undergraduate: false,
+        college_graduate: false,
+        masteral: false,
+        doctorate: false,
 
         classifications: [], other_classification_details: '',
         disability_types: [], cause_of_disability: '',
@@ -166,12 +190,14 @@ const RegistrationForm: React.FC = () => {
     });
 
     const [currentStep, setCurrentStep] = useState(0);
+    // State to manage client-side validation errors
+    const [clientSideErrors, setClientSideErrors] = useState<Record<string, string>>({});
 
     const steps = [
-        "Personal Info", // Shorter for mobile
+        "Personal Info",
         "Contact & Address",
-        "Education", // Shorter for mobile
-        "Class & Disability", // Shorter for mobile
+        "Education",
+        "Class & Disability",
         "Course & Scholarship",
         "Consent & Uploads",
         "Review & Submit"
@@ -181,20 +207,21 @@ const RegistrationForm: React.FC = () => {
     const [classificationOptions, setClassificationOptions] = useState<CheckboxOption[]>([]);
     const [disabilityTypeOptions, setDisabilityTypeOptions] = useState<CheckboxOption[]>([]);
 
+    // Educational attainment levels with values matching FormData keys (and migration columns)
     const educationalAttainmentLevels = [
-        { value: 'No Grade Completed', label: 'No Grade Completed' },
-        { value: 'Elementary Undergraduate', label: 'Elementary Undergraduate' },
-        { value: 'Elementary Graduate', label: 'Elementary Graduate' },
-        { value: 'Junior High (K-12)', label: 'Junior High (K-12)' },
-        { value: 'Senior High (K-12)', label: 'Senior High (K-12)' },
-        { value: 'High School Undergraduate', label: 'High School Undergraduate' },
-        { value: 'High School Graduate', label: 'High School Graduate' },
-        { value: 'Post-Secondary Non-Tertiary Technical Vocational Undergraduate', label: 'Post-Secondary Non-Tertiary Technical Vocational Undergraduate' },
-        { value: 'Post-Secondary Non-Tertiary Technical Vocational Course Graduate', label: 'Post-Secondary Non-Tertiary Technical Vocational Course Graduate' },
-        { value: 'College Undergraduate', label: 'College Undergraduate' },
-        { value: 'College Graduate', label: 'College Graduate' },
-        { value: 'Masteral', label: 'Masteral' },
-        { value: 'Doctorate', label: 'Doctorate' },
+        { value: 'no_grade_completed', label: 'No Grade Completed' },
+        { value: 'elementary_undergraduate', label: 'Elementary Undergraduate' },
+        { value: 'elementary_graduate', label: 'Elementary Graduate' },
+        { value: 'junior_high_k12', label: 'Junior High (K-12)' },
+        { value: 'senior_high_k12', label: 'Senior High (K-12)' },
+        { value: 'high_school_undergraduate', label: 'High School Undergraduate' },
+        { value: 'high_school_graduate', label: 'High School Graduate' },
+        { value: 'post_secondary_non_tertiary_technical_vocational_undergraduate', label: 'Post-Secondary Non-Tertiary Technical Vocational Undergraduate' },
+        { value: 'post_secondary_non_tertiary_technical_vocational_course_graduate', label: 'Post-Secondary Non-Tertiary Technical Vocational Course Graduate' },
+        { value: 'college_undergraduate', label: 'College Undergraduate' },
+        { value: 'college_graduate', label: 'College Graduate' },
+        { value: 'masteral', label: 'Masteral' },
+        { value: 'doctorate', label: 'Doctorate' },
     ];
 
 
@@ -224,29 +251,26 @@ const RegistrationForm: React.FC = () => {
 
     const validateStep = async (step: number): Promise<boolean> => {
         let currentStepFields: (keyof FormData)[] = [];
-        const localErrors: Record<string, string> = {};
-
-        // Clear errors for all fields first to ensure only current step errors are shown
-        setData(prevData => ({ ...prevData, errors: {} }));
-
+        const newLocalErrors: Record<string, string> = {}; // Use a new object for local errors
 
         switch (step) {
-            case 0: // Personal InformationWWW
+            case 0: // Personal Information
                 currentStepFields = ['last_name', 'first_name', 'gender', 'civil_status', 'birth_date', 'age', 'email', 'nationality'];
                 break;
             case 1: // Contact & Address
                 currentStepFields = ['number_street', 'city_municipality', 'barangay', 'province', 'region', 'contact_no', 'parent_guardian_name', 'parent_guardian_mailing_address'];
                 break;
             case 2: // Educational Background
-                currentStepFields = ['educational_attainment_level'];
+                // For educational attainment, at least one must be true
+                const isAnyEducationalAttainmentSelected = educationalAttainmentLevels.some(
+                    (level) => data[level.value as keyof FormData] === true
+                );
+                if (!isAnyEducationalAttainmentSelected) {
+                    newLocalErrors.educational_attainment_level = 'Please select your highest educational attainment.';
+                }
                 break;
             case 3: // Classification & Disability
-                if (data.classifications.includes(24)) {
-                    currentStepFields.push('other_classification_details');
-                }
-                if (data.disability_types.length > 0) {
-                    currentStepFields.push('cause_of_disability');
-                }
+                // No fields are strictly required unless 'Others' or a disability is selected
                 break;
             case 4: // Course & Scholarship
                 currentStepFields = ['course_qualification'];
@@ -264,50 +288,33 @@ const RegistrationForm: React.FC = () => {
 
             if (typeof value === 'string' && !value.trim() &&
                 !['middle_name', 'extension_name', 'facebook_account', 'scholarship_package', 'other_classification_details', 'cause_of_disability'].includes(field as string)) {
-                localErrors[field] = 'This field is required.';
+                newLocalErrors[field] = 'This field is required.';
             } else if (typeof value === 'number' && (value === '' || isNaN(value as number))) {
-                localErrors[field] = 'This field is required.';
+                newLocalErrors[field] = 'This field is required.';
             }
         });
 
-        // Specific validation for educational_attainment_level (radio button)
-        if (step === 2 && !data.educational_attainment_level) {
-            localErrors.educational_attainment_level = 'Please select your highest educational attainment.';
-        }
-
         // Specific validation for 'Others' classification detail if 'Others' checkbox is selected
-        if (step === 3 && data.classifications.includes(24) && !data.other_classification_details?.trim()) {
-            localErrors.other_classification_details = 'Please specify details for "Others" classification.';
+        if (step === 3 && data.classifications.includes(24) && !(data.other_classification_details?.trim())) {
+            newLocalErrors.other_classification_details = 'Please specify details for "Others" classification.';
         }
 
         // Specific validation for cause of disability if any disability is selected
-        if (step === 3 && data.disability_types.length > 0 && !data.cause_of_disability?.trim()) {
-            localErrors.cause_of_disability = 'Please specify the cause of disability.';
+        if (step === 3 && data.disability_types.length > 0 && !(data.cause_of_disability?.trim())) {
+            newLocalErrors.cause_of_disability = 'Please specify the cause of disability.';
         }
 
         // Specific validation for files and consent in step 5
         if (step === 5) {
-            if (!data.thumbmark_image) localErrors.thumbmark_image = 'Thumbmark image is required.';
-            if (!data.picture_image) localErrors.picture_image = 'Picture is required.';
-            if (!data.consent_given) localErrors.consent_given = 'You must agree to the privacy disclaimer.';
+            if (!data.thumbmark_image) newLocalErrors.thumbmark_image = 'Thumbmark image is required.';
+            if (!data.picture_image) newLocalErrors.picture_image = 'Picture is required.';
+            if (!data.consent_given) newLocalErrors.consent_given = 'You must agree to the privacy disclaimer.';
         }
 
-        // Update Inertia's errors object
-        if (Object.keys(localErrors).length > 0) {
-            setData('errors', { ...errors, ...localErrors }); // Merge new local errors
-            return false;
-        } else {
-            // Clear errors for this step if it's now valid
-            const newErrors = { ...errors };
-            currentStepFields.forEach(field => {
-                if (newErrors[field]) {
-                    delete newErrors[field];
-                }
-            });
-            setData('errors', newErrors); // Trigger Inertia to update errors
-        }
+        // Update the client-side errors state
+        setClientSideErrors(newLocalErrors);
 
-        return true;
+        return Object.keys(newLocalErrors).length === 0; // Return true if no local errors
     };
 
 
@@ -317,7 +324,8 @@ const RegistrationForm: React.FC = () => {
             setCurrentStep((prev) => prev + 1);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
-            if (Object.keys(errors).length > 0) {
+            // Display alert only if there are client-side errors
+            if (Object.keys(clientSideErrors).length > 0) {
                 alert('Please fill in all required fields for this section.');
             }
         }
@@ -330,7 +338,7 @@ const RegistrationForm: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const isValid = await validateStep(currentStep);
+        const isValid = await validateStep(currentStep); // Run client-side validation for the current step
 
         if (isValid) {
             router.post(route('register.learner'), data, {
@@ -338,16 +346,19 @@ const RegistrationForm: React.FC = () => {
                 onSuccess: () => {
                     reset();
                     setCurrentStep(0); // Reset to first step on success
+                    setClientSideErrors({}); // Clear client-side errors on success
                     alert('Registration successful! Please check your email for verification and your temporary password.');
                 },
                 onError: (validationErrors) => {
                     console.error('Validation Errors:', validationErrors);
+                    // Server-side errors are automatically populated into `errors` object by Inertia
+                    // Find the first error and navigate to its step
                     const firstErrorField = Object.keys(validationErrors)[0];
                     if (firstErrorField) {
                         const errorStepMap: Record<string, number> = {
                             last_name: 0, first_name: 0, gender: 0, civil_status: 0, birth_date: 0, age: 0, email: 0, nationality: 0,
                             number_street: 1, city_municipality: 1, barangay: 1, province: 1, region: 1, contact_no: 1, parent_guardian_name: 1, parent_guardian_mailing_address: 1, facebook_account: 1,
-                            educational_attainment_level: 2,
+                            no_grade_completed: 2, elementary_undergraduate: 2, elementary_graduate: 2, junior_high_k12: 2, senior_high_k12: 2, high_school_undergraduate: 2, high_school_graduate: 2, post_secondary_non_tertiary_technical_vocational_undergraduate: 2, post_secondary_non_tertiary_technical_vocational_course_graduate: 2, college_undergraduate: 2, college_graduate: 2, masteral: 2, doctorate: 2, // Map all educational fields to step 2
                             classifications: 3, other_classification_details: 3, disability_types: 3, cause_of_disability: 3,
                             course_qualification: 4, scholarship_package: 4,
                             consent_given: 5, thumbmark_image: 5, picture_image: 5,
@@ -361,6 +372,20 @@ const RegistrationForm: React.FC = () => {
         } else {
             alert('Please review the form for errors before submitting.');
         }
+    };
+
+    // Handler for educational attainment radio buttons to ensure only one is true
+    const handleEducationalAttainmentChange = (field: keyof FormData, isChecked: boolean) => {
+        setData(prevData => {
+            const newData = { ...prevData };
+            // Set all educational attainment fields to false first
+            educationalAttainmentLevels.forEach(level => {
+                newData[level.value as keyof FormData] = false;
+            });
+            // Then set the selected field to true
+            newData[field] = isChecked;
+            return newData;
+        });
     };
 
     const handleCheckboxChange = (field: keyof FormData, id: number) => {
@@ -378,113 +403,123 @@ const RegistrationForm: React.FC = () => {
     };
 
     const renderStepContent = () => {
+        // Helper to get the selected educational attainment label for review
+        const getSelectedEducationalAttainment = () => {
+            const selectedLevel = educationalAttainmentLevels.find(level => data[level.value as keyof FormData] === true);
+            return selectedLevel ? selectedLevel.label : 'None selected';
+        };
+
         switch (currentStep) {
             case 0: // Personal Information
                 return (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <InputField id="last_name" label="Last Name" value={data.last_name} onChange={e => setData('last_name', e.target.value)} error={errors.last_name} />
-                        <InputField id="first_name" label="First Name" value={data.first_name} onChange={e => setData('first_name', e.target.value)} error={errors.first_name} />
-                        <InputField id="middle_name" label="Middle Name" value={data.middle_name} onChange={e => setData('middle_name', e.target.value)} error={errors.middle_name} />
-                        <InputField id="extension_name" label="Extension Name (Jr., Sr.)" value={data.extension_name} onChange={e => setData('extension_name', e.target.value)} error={errors.extension_name} />
+                        <InputField id="last_name" label="Last Name" value={data.last_name} onChange={e => setData('last_name', e.target.value)} error={errors.last_name || clientSideErrors.last_name} />
+                        <InputField id="first_name" label="First Name" value={data.first_name} onChange={e => setData('first_name', e.target.value)} error={errors.first_name || clientSideErrors.first_name} />
+                        <InputField id="middle_name" label="Middle Name" value={data.middle_name} onChange={e => setData('middle_name', e.target.value)} error={errors.middle_name || clientSideErrors.middle_name} />
+                        <InputField id="extension_name" label="Extension Name (Jr., Sr.)" value={data.extension_name} onChange={e => setData('extension_name', e.target.value)} error={errors.extension_name || clientSideErrors.extension_name} />
 
-                        <div className="mb-4">
-                            <label className="block text-gray-900 text-sm font-semibold mb-2">Gender</label> {/* Changed to text-gray-900 */}
-                            <div className="flex flex-wrap items-center gap-4">
-                                <label htmlFor="gender_male" className="flex items-center text-gray-900"> {/* Changed to text-gray-900 */}
+                        <div className="mb-5">
+                            <label className="block text-gray-900 text-sm font-semibold mb-2">Gender</label>
+                            <div className="flex flex-wrap items-center gap-6">
+                                <label htmlFor="gender_male" className="flex items-center text-gray-900 cursor-pointer">
                                     <InputField id="gender_male" label="" type="radio" value="Male" onCheckboxChange={e => setData('gender', e.target.value)} isChecked={data.gender === 'Male'} name="gender" /> Male
                                 </label>
-                                <label htmlFor="gender_female" className="flex items-center text-gray-900"> {/* Changed to text-gray-900 */}
+                                <label htmlFor="gender_female" className="flex items-center text-gray-900 cursor-pointer">
                                     <InputField id="gender_female" label="" type="radio" value="Female" onCheckboxChange={e => setData('gender', e.target.value)} isChecked={data.gender === 'Female'} name="gender" /> Female
                                 </label>
                                 {errors.gender && <p className="text-red-500 text-xs italic mt-1">{errors.gender}</p>}
+                                {clientSideErrors.gender && <p className="text-red-500 text-xs italic mt-1">{clientSideErrors.gender}</p>}
                             </div>
                         </div>
 
-                        <InputField id="civil_status" label="Civil Status" type="select" value={data.civil_status} onChange={e => setData('civil_status', e.target.value)} error={errors.civil_status}
+                        <InputField id="civil_status" label="Civil Status" type="select" value={data.civil_status} onChange={e => setData('civil_status', e.target.value)} error={errors.civil_status || clientSideErrors.civil_status}
                             options={[
                                 { value: 'Single', label: 'Single' }, { value: 'Married', label: 'Married' },
                                 { value: 'Widowed/Divorced/Annulled', label: 'Widowed/Divorced/Annulled' },
                                 { value: 'Common Law/Live-in', label: 'Common Law/Live-in' },
                             ]}
                         />
-                        <InputField id="birth_date" label="Birthdate" type="date" value={data.birth_date} onChange={e => setData('birth_date', e.target.value)} error={errors.birth_date} />
-                        <InputField id="age" label="Age" type="number" value={data.age} onChange={e => setData('age', parseInt(e.target.value) || '')} error={errors.age} min="1" />
-                        <InputField id="nationality" label="Nationality" value={data.nationality} onChange={e => setData('nationality', e.target.value)} error={errors.nationality} />
-                        <InputField id="email" label="Email Address" type="email" value={data.email} onChange={e => setData('email', e.target.value)} error={errors.email} />
+                        <InputField id="birth_date" label="Birthdate" type="date" value={data.birth_date} onChange={e => setData('birth_date', e.target.value)} error={errors.birth_date || clientSideErrors.birth_date} />
+                        <InputField id="age" label="Age" type="number" value={data.age} onChange={e => setData('age', parseInt(e.target.value) || '')} error={errors.age || clientSideErrors.age} min="1" />
+                        <InputField id="nationality" label="Nationality" value={data.nationality} onChange={e => setData('nationality', e.target.value)} error={errors.nationality || clientSideErrors.nationality} />
+                        <InputField id="email" label="Email Address" type="email" value={data.email} onChange={e => setData('email', e.target.value)} error={errors.email || clientSideErrors.email} />
                     </div>
                 );
             case 1: // Contact & Address
                 return (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <InputField id="number_street" label="Number, Street" value={data.number_street} onChange={e => setData('number_street', e.target.value)} error={errors.number_street} />
-                        <InputField id="barangay" label="Barangay" value={data.barangay} onChange={e => setData('barangay', e.target.value)} error={errors.barangay} />
-                        <InputField id="city_municipality" label="City/Municipality" value={data.city_municipality} onChange={e => setData('city_municipality', e.target.value)} error={errors.city_municipality} />
-                        <InputField id="district" label="District" value={data.district} onChange={e => setData('district', e.target.value)} error={errors.district} />
-                        <InputField id="province" label="Province" value={data.province} onChange={e => setData('province', e.target.value)} error={errors.province} />
-                        <InputField id="region" label="Region" value={data.region} onChange={e => setData('region', e.target.value)} error={errors.region} />
-                        <InputField id="contact_no" label="Contact No." value={data.contact_no} onChange={e => setData('contact_no', e.target.value)} error={errors.contact_no} />
-                        <InputField id="facebook_account" label="Facebook Account" value={data.facebook_account} onChange={e => setData('facebook_account', e.target.value)} error={errors.facebook_account} />
-                        <InputField id="parent_guardian_name" label="Parent/Guardian Name" value={data.parent_guardian_name} onChange={e => setData('parent_guardian_name', e.target.value)} error={errors.parent_guardian_name} />
-                        <InputField id="parent_guardian_mailing_address" label="Parent/Guardian Mailing Address" type="textarea" value={data.parent_guardian_mailing_address} onChange={e => setData('parent_guardian_mailing_address', e.target.value)} error={errors.parent_guardian_mailing_address} />
+                        <InputField id="number_street" label="Number, Street" value={data.number_street} onChange={e => setData('number_street', e.target.value)} error={errors.number_street || clientSideErrors.number_street} />
+                        <InputField id="barangay" label="Barangay" value={data.barangay} onChange={e => setData('barangay', e.target.value)} error={errors.barangay || clientSideErrors.barangay} />
+                        <InputField id="city_municipality" label="City/Municipality" value={data.city_municipality} onChange={e => setData('city_municipality', e.target.value)} error={errors.city_municipality || clientSideErrors.city_municipality} />
+                        <InputField id="district" label="District" value={data.district} onChange={e => setData('district', e.target.value)} error={errors.district || clientSideErrors.district} />
+                        <InputField id="province" label="Province" value={data.province} onChange={e => setData('province', e.target.value)} error={errors.province || clientSideErrors.province} />
+                        <InputField id="region" label="Region" value={data.region} onChange={e => setData('region', e.target.value)} error={errors.region || clientSideErrors.region} />
+                        <InputField id="contact_no" label="Contact No." value={data.contact_no} onChange={e => setData('contact_no', e.target.value)} error={errors.contact_no || clientSideErrors.contact_no} />
+                        <InputField id="facebook_account" label="Facebook Account" value={data.facebook_account} onChange={e => setData('facebook_account', e.target.value)} error={errors.facebook_account || clientSideErrors.facebook_account} />
+                        <InputField id="parent_guardian_name" label="Parent/Guardian Name" value={data.parent_guardian_name} onChange={e => setData('parent_guardian_name', e.target.value)} error={errors.parent_guardian_name || clientSideErrors.parent_guardian_name} />
+                        <InputField id="parent_guardian_mailing_address" label="Parent/Guardian Mailing Address" type="textarea" value={data.parent_guardian_mailing_address} onChange={e => setData('parent_guardian_mailing_address', e.target.value)} error={errors.parent_guardian_mailing_address || clientSideErrors.parent_guardian_mailing_address} />
                     </div>
                 );
             case 2: // Educational Background
                 return (
                     <div className="grid grid-cols-1 gap-4">
-                        <h4 className="text-lg font-bold mb-3 text-gray-900">Highest Educational Attainment</h4> {/* Changed to text-gray-900 */}
+                        <h4 className="text-lg font-bold mb-3 text-gray-900">Highest Educational Attainment</h4>
                         {educationalAttainmentLevels.map((option) => (
-                            <label key={option.value} htmlFor={`edu_${option.value.replace(/\s/g, '_').replace(/[\(\)]/g, '')}`} className="flex items-center text-gray-900 p-2 border rounded-md hover:bg-gray-50 transition duration-150"> {/* Changed to text-gray-900 */}
+                            <label key={option.value} htmlFor={`edu_${option.value}`} className="flex items-center text-gray-900 p-3 border border-gray-200 rounded-lg hover:bg-gray-100 transition duration-150 ease-in-out cursor-pointer shadow-sm">
                                 <InputField
-                                    id={`edu_${option.value.replace(/\s/g, '_').replace(/[\(\)]/g, '')}`}
+                                    id={`edu_${option.value}`}
                                     label=""
                                     type="radio"
                                     value={option.value}
-                                    onCheckboxChange={e => setData('educational_attainment_level', e.target.value)}
-                                    isChecked={data.educational_attainment_level === option.value}
-                                    name="educational_attainment_level" // Group all radio buttons
+                                    onCheckboxChange={e => handleEducationalAttainmentChange(option.value as keyof FormData, e.target.checked)}
+                                    isChecked={data[option.value as keyof FormData] === true}
+                                    name="educational_attainment_level_group" // Group all radio buttons
                                 />
-                                {option.label}
+                                <span className="ml-2">{option.label}</span>
                             </label>
                         ))}
                         {errors.educational_attainment_level && <p className="text-red-500 text-xs italic mt-1">{errors.educational_attainment_level}</p>}
+                        {clientSideErrors.educational_attainment_level && <p className="text-red-500 text-xs italic mt-1">{clientSideErrors.educational_attainment_level}</p>}
                     </div>
                 );
             case 3: // Classification & Disability
                 return (
-                    <div className="grid grid-cols-1 gap-6">
+                    <div className="grid grid-cols-1 gap-8">
                         <div>
-                            <h4 className="text-lg font-bold mb-3 text-gray-900">Learner/Trainee/Student (Clients) Classification (Optional)</h4> {/* Changed to text-gray-900 */}
-                            <p className="text-sm text-gray-900 mb-3">Select all that apply. You can leave this section blank if none apply.</p> {/* Changed to text-gray-900 */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <h4 className="text-lg font-bold mb-3 text-gray-900">Learner/Trainee/Student (Clients) Classification (Optional)</h4>
+                            <p className="text-sm text-gray-700 mb-4">Select all that apply. You can leave this section blank if none apply.</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {classificationOptions.map(option => (
-                                    <label key={option.id} htmlFor={`classification_${option.id}`} className="flex items-center text-gray-900 p-2 border rounded-md hover:bg-gray-50 transition duration-150"> {/* Changed to text-gray-900 */}
-                                        <InputField id={`classification_${option.id}`} label="" type="checkbox" isChecked={data.classifications.includes(option.id)} onCheckboxChange={() => handleCheckboxChange('classifications', option.id)} /> {option.type}
+                                    <label key={option.id} htmlFor={`classification_${option.id}`} className="flex items-center text-gray-900 p-3 border border-gray-200 rounded-lg hover:bg-gray-100 transition duration-150 ease-in-out cursor-pointer shadow-sm">
+                                        <InputField id={`classification_${option.id}`} label="" type="checkbox" isChecked={data.classifications.includes(option.id)} onCheckboxChange={() => handleCheckboxChange('classifications', option.id)} /> <span className="ml-2">{option.type}</span>
                                     </label>
                                 ))}
                             </div>
                             {data.classifications.includes(24) && ( // Assuming 24 is the ID for 'Others'
-                                <InputField id="other_classification_details" label="Others (Please Specify)" value={data.other_classification_details} onChange={e => setData('other_classification_details', e.target.value)} error={errors.other_classification_details} className="mt-4" />
+                                <InputField id="other_classification_details" label="Others (Please Specify)" value={data.other_classification_details} onChange={e => setData('other_classification_details', e.target.value)} error={errors.other_classification_details || clientSideErrors.other_classification_details} className="mt-5" />
                             )}
                             {errors.classifications && <p className="text-red-500 text-xs italic mt-1">{errors.classifications}</p>}
+                            {clientSideErrors.classifications && <p className="text-red-500 text-xs italic mt-1">{clientSideErrors.classifications}</p>}
                         </div>
 
                         <div className="mt-6">
-                            <h4 className="text-lg font-bold mb-3 text-gray-900">Type of Disability (Optional)</h4> {/* Changed to text-gray-900 */}
-                            <p className="text-sm text-gray-900 mb-3">Select all that apply. You can leave this section blank if none apply.</p> {/* Changed to text-gray-900 */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <h4 className="text-lg font-bold mb-3 text-gray-900">Type of Disability (Optional)</h4>
+                            <p className="text-sm text-gray-700 mb-4">Select all that apply. You can leave this section blank if none apply.</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {disabilityTypeOptions.map(option => (
-                                    <label key={option.id} htmlFor={`disability_${option.id}`} className="flex items-center text-gray-900 p-2 border rounded-md hover:bg-gray-50 transition duration-150"> {/* Changed to text-gray-900 */}
-                                        <InputField id={`disability_${option.id}`} label="" type="checkbox" isChecked={data.disability_types.includes(option.id)} onCheckboxChange={() => handleCheckboxChange('disability_types', option.id)} /> {option.name}
+                                    <label key={option.id} htmlFor={`disability_${option.id}`} className="flex items-center text-gray-900 p-3 border border-gray-200 rounded-lg hover:bg-gray-100 transition duration-150 ease-in-out cursor-pointer shadow-sm">
+                                        <InputField id={`disability_${option.id}`} label="" type="checkbox" isChecked={data.disability_types.includes(option.id)} onCheckboxChange={() => handleCheckboxChange('disability_types', option.id)} /> <span className="ml-2">{option.name}</span>
                                     </label>
                                 ))}
                             </div>
                             {errors.disability_types && <p className="text-red-500 text-xs italic mt-1">{errors.disability_types}</p>}
+                            {clientSideErrors.disability_types && <p className="text-red-500 text-xs italic mt-1">{clientSideErrors.disability_types}</p>}
                         </div>
 
                         {data.disability_types.length > 0 && (
                             <div className="mt-6">
-                                <h4 className="text-lg font-bold mb-3 text-gray-900">Causes of Disability (Optional, if disability selected)</h4> {/* Changed to text-gray-900 */}
-                                <InputField id="cause_of_disability" label="Cause of Disability" value={data.cause_of_disability} onChange={e => setData('cause_of_disability', e.target.value)} error={errors.cause_of_disability} placeholder="e.g., Congenital/Inborn, Illness, Injury" />
+                                <h4 className="text-lg font-bold mb-3 text-gray-900">Causes of Disability (Optional, if disability selected)</h4>
+                                <InputField id="cause_of_disability" label="Cause of Disability" value={data.cause_of_disability} onChange={e => setData('cause_of_disability', e.target.value)} error={errors.cause_of_disability || clientSideErrors.cause_of_disability} placeholder="e.g., Congenital/Inborn, Illness, Injury" />
                             </div>
                         )}
                     </div>
@@ -492,29 +527,30 @@ const RegistrationForm: React.FC = () => {
             case 4: // Course & Scholarship
                 return (
                     <div className="grid grid-cols-1 gap-6">
-                        <InputField id="course_qualification" label="Name of Course/Qualification" value={data.course_qualification} onChange={e => setData('course_qualification', e.target.value)} error={errors.course_qualification} />
-                        <InputField id="scholarship_package" label="If Scholar, What Type of Scholarship Package (TWSP, PESFA, STEP, others)?" value={data.scholarship_package} onChange={e => setData('scholarship_package', e.target.value)} error={errors.scholarship_package} />
+                        <InputField id="course_qualification" label="Name of Course/Qualification" value={data.course_qualification} onChange={e => setData('course_qualification', e.target.value)} error={errors.course_qualification || clientSideErrors.course_qualification} />
+                        <InputField id="scholarship_package" label="If Scholar, What Type of Scholarship Package (TWSP, PESFA, STEP, others)?" value={data.scholarship_package} onChange={e => setData('scholarship_package', e.target.value)} error={errors.scholarship_package || clientSideErrors.scholarship_package} />
                     </div>
                 );
             case 5: // Consent & Uploads
                 return (
                     <div className="grid grid-cols-1 gap-6">
                         <div>
-                            <h4 className="text-lg font-bold mb-3 text-gray-900">Privacy Consent and Disclaimer</h4> {/* Changed to text-gray-900 */}
-                            <label htmlFor="consent_given" className="flex items-start text-gray-900 p-2 border rounded-md hover:bg-gray-50 transition duration-150"> {/* Changed to text-gray-900 */}
+                            <h4 className="text-lg font-bold mb-3 text-gray-900">Privacy Consent and Disclaimer</h4>
+                            <label htmlFor="consent_given" className="flex items-start text-gray-900 p-4 border border-gray-200 rounded-lg hover:bg-gray-100 transition duration-150 ease-in-out cursor-pointer shadow-sm">
                                 <InputField id="consent_given" label="" type="checkbox" isChecked={data.consent_given} onCheckboxChange={e => setData('consent_given', e.target.checked)} className="mt-1" />
-                                <span className="ml-2">
+                                <span className="ml-3 text-sm leading-relaxed">
                                     I hereby attest that I have read and understood the Privacy Notice of TESDA through its website (link here) and agree to the processing of my personal data for purposes indicated therein. I understand that this Learners Profile is for TESDA program monitoring which includes scholarships, employment, survey, and all other related TESDA programs that may be beneficial to my qualifications.
                                 </span>
                             </label>
                             {errors.consent_given && <p className="text-red-500 text-xs italic mt-1">{errors.consent_given}</p>}
+                            {clientSideErrors.consent_given && <p className="text-red-500 text-xs italic mt-1">{clientSideErrors.consent_given}</p>}
                         </div>
 
                         <div className="mt-6">
-                            <h4 className="text-lg font-bold mb-3 text-gray-900">Applicant's Signature & Photo</h4> {/* Changed to text-gray-900 */}
-                            <InputField id="thumbmark_image" label="Upload Right Thumbmark (Image)" type="file" onChange={e => handleFileChange('thumbmark_image', e)} error={errors.thumbmark_image} />
-                            <InputField id="picture_image" label="Upload 1x1 Picture (taken within 6 months)" type="file" onChange={e => handleFileChange('picture_image', e)} error={errors.picture_image} />
-                            <p className="text-sm text-gray-900 italic mt-2">Note: The 'Printed Name' and 'Date Accomplished' will be automatically set in the system.</p> {/* Changed to text-gray-900 */}
+                            <h4 className="text-lg font-bold mb-3 text-gray-900">Applicant's Signature & Photo</h4>
+                            <InputField id="thumbmark_image" label="Upload Right Thumbmark (Image)" type="file" onChange={e => handleFileChange('thumbmark_image', e)} error={errors.thumbmark_image || clientSideErrors.thumbmark_image} />
+                            <InputField id="picture_image" label="Upload 1x1 Picture (taken within 6 months)" type="file" onChange={e => handleFileChange('picture_image', e)} error={errors.picture_image || clientSideErrors.picture_image} />
+                            <p className="text-sm text-gray-700 italic mt-2">Note: The 'Printed Name' and 'Date Accomplished' will be automatically set in the system.</p>
                         </div>
                     </div>
                 );
@@ -522,57 +558,57 @@ const RegistrationForm: React.FC = () => {
                 return (
                     <div className="space-y-6">
                         <h3 className="text-2xl font-bold text-htta-blue mb-4 text-center">Review Your Information</h3>
-                        <p className="text-gray-900 text-center mb-6">Please review all the details carefully before submitting your registration.</p> {/* Changed to text-gray-900 */}
+                        <p className="text-gray-700 text-center mb-6">Please review all the details carefully before submitting your registration.</p>
 
                         {/* Personal Information */}
-                        <div className="bg-gray-50 p-4 rounded-md shadow-sm">
-                            <h4 className="font-bold text-lg text-htta-blue mb-2">Personal Information</h4>
-                            <p className="text-gray-900"><strong>Name:</strong> {data.first_name} {data.middle_name} {data.last_name} {data.extension_name}</p> {/* Changed to text-gray-900 */}
-                            <p className="text-gray-900"><strong>Gender:</strong> {data.gender}</p> {/* Changed to text-gray-900 */}
-                            <p className="text-gray-900"><strong>Civil Status:</strong> {data.civil_status}</p> {/* Changed to text-gray-900 */}
-                            <p className="text-gray-900"><strong>Birthdate:</strong> {data.birth_date}</p> {/* Changed to text-gray-900 */}
-                            <p className="text-gray-900"><strong>Age:</strong> {data.age}</p> {/* Changed to text-gray-900 */}
-                            <p className="text-gray-900"><strong>Nationality:</strong> {data.nationality}</p> {/* Changed to text-gray-900 */}
-                            <p className="text-gray-900"><strong>Email:</strong> {data.email}</p> {/* Changed to text-gray-900 */}
+                        <div className="bg-gray-100 p-5 rounded-lg shadow-md">
+                            <h4 className="font-bold text-lg text-htta-blue mb-3">Personal Information</h4>
+                            <p className="text-gray-900 mb-1"><strong>Name:</strong> {data.first_name} {data.middle_name} {data.last_name} {data.extension_name}</p>
+                            <p className="text-gray-900 mb-1"><strong>Gender:</strong> {data.gender}</p>
+                            <p className="text-gray-900 mb-1"><strong>Civil Status:</strong> {data.civil_status}</p>
+                            <p className="text-900 mb-1"><strong>Birthdate:</strong> {data.birth_date}</p>
+                            <p className="text-gray-900 mb-1"><strong>Age:</strong> {data.age}</p>
+                            <p className="text-gray-900 mb-1"><strong>Nationality:</strong> {data.nationality}</p>
+                            <p className="text-gray-900"><strong>Email:</strong> {data.email}</p>
                         </div>
 
                         {/* Contact & Address */}
-                        <div className="bg-gray-50 p-4 rounded-md shadow-sm">
-                            <h4 className="font-bold text-lg text-htta-blue mb-2">Contact & Address</h4>
-                            <p className="text-gray-900"><strong>Address:</strong> {data.number_street}, {data.barangay}, {data.city_municipality}, {data.district}, {data.province}, {data.region}</p> {/* Changed to text-gray-900 */}
-                            <p className="text-gray-900"><strong>Contact No.:</strong> {data.contact_no}</p> {/* Changed to text-gray-900 */}
-                            <p className="text-gray-900"><strong>Facebook:</strong> {data.facebook_account}</p> {/* Changed to text-gray-900 */}
-                            <p className="text-gray-900"><strong>Parent/Guardian:</strong> {data.parent_guardian_name} ({data.parent_guardian_mailing_address})</p> {/* Changed to text-gray-900 */}
+                        <div className="bg-gray-100 p-5 rounded-lg shadow-md">
+                            <h4 className="font-bold text-lg text-htta-blue mb-3">Contact & Address</h4>
+                            <p className="text-gray-900 mb-1"><strong>Address:</strong> {data.number_street}, {data.barangay}, {data.city_municipality}, {data.district}, {data.province}, {data.region}</p>
+                            <p className="text-gray-900 mb-1"><strong>Contact No.:</strong> {data.contact_no}</p>
+                            <p className="text-gray-900 mb-1"><strong>Facebook:</strong> {data.facebook_account || 'N/A'}</p>
+                            <p className="text-gray-900"><strong>Parent/Guardian:</strong> {data.parent_guardian_name || 'N/A'} ({data.parent_guardian_mailing_address || 'N/A'})</p>
                         </div>
 
                         {/* Educational Background */}
-                        <div className="bg-gray-50 p-4 rounded-md shadow-sm">
-                            <h4 className="font-bold text-lg text-htta-blue mb-2">Educational Background</h4>
-                            <p className="text-gray-900"><strong>Highest Attainment:</strong> {data.educational_attainment_level}</p> {/* Changed to text-gray-900 */}
+                        <div className="bg-gray-100 p-5 rounded-lg shadow-md">
+                            <h4 className="font-bold text-lg text-htta-blue mb-3">Educational Background</h4>
+                            <p className="text-gray-900"><strong>Highest Attainment:</strong> {getSelectedEducationalAttainment()}</p>
                         </div>
 
                         {/* Classification & Disability */}
-                        <div className="bg-gray-50 p-4 rounded-md shadow-sm">
-                            <h4 className="font-bold text-lg text-htta-blue mb-2">Classification & Disability</h4>
-                            <p className="text-gray-900"><strong>Classifications:</strong> {data.classifications.length > 0 ? data.classifications.map(id => classificationOptions.find(opt => opt.id === id)?.type).filter(Boolean).join(', ') : 'None selected'}</p> {/* Changed to text-gray-900 */}
-                            {data.classifications.includes(24) && <p className="text-gray-900"><strong>Other Classification Details:</strong> {data.other_classification_details}</p>} {/* Changed to text-gray-900 */}
-                            <p className="text-gray-900"><strong>Disabilities:</strong> {data.disability_types.length > 0 ? data.disability_types.map(id => disabilityTypeOptions.find(opt => opt.id === id)?.name).filter(Boolean).join(', ') : 'None selected'}</p> {/* Changed to text-gray-900 */}
-                            {data.disability_types.length > 0 && <p className="text-gray-900"><strong>Cause of Disability:</strong> {data.cause_of_disability}</p>} {/* Changed to text-gray-900 */}
+                        <div className="bg-gray-100 p-5 rounded-lg shadow-md">
+                            <h4 className="font-bold text-lg text-htta-blue mb-3">Classification & Disability</h4>
+                            <p className="text-gray-900 mb-1"><strong>Classifications:</strong> {data.classifications.length > 0 ? data.classifications.map(id => classificationOptions.find(opt => opt.id === id)?.type).filter(Boolean).join(', ') : 'None selected'}</p>
+                            {data.classifications.includes(24) && <p className="text-gray-900 mb-1"><strong>Other Classification Details:</strong> {data.other_classification_details}</p>}
+                            <p className="text-gray-900 mb-1"><strong>Disabilities:</strong> {data.disability_types.length > 0 ? data.disability_types.map(id => disabilityTypeOptions.find(opt => opt.id === id)?.name).filter(Boolean).join(', ') : 'None selected'}</p>
+                            {data.disability_types.length > 0 && <p className="text-gray-900"><strong>Cause of Disability:</strong> {data.cause_of_disability}</p>}
                         </div>
 
                         {/* Course & Scholarship */}
-                        <div className="bg-gray-50 p-4 rounded-md shadow-sm">
-                            <h4 className="font-bold text-lg text-htta-blue mb-2">Course & Scholarship</h4>
-                            <p className="text-gray-900"><strong>Course/Qualification:</strong> {data.course_qualification}</p> {/* Ensured text-gray-900 */}
-                            <p className="text-gray-900"><strong>Scholarship Package:</strong> {data.scholarship_package}</p> {/* Ensured text-gray-900 */}
+                        <div className="bg-gray-100 p-5 rounded-lg shadow-md">
+                            <h4 className="font-bold text-lg text-htta-blue mb-3">Course & Scholarship</h4>
+                            <p className="text-gray-900 mb-1"><strong>Course/Qualification:</strong> {data.course_qualification}</p>
+                            <p className="text-gray-900"><strong>Scholarship Package:</strong> {data.scholarship_package || 'N/A'}</p>
                         </div>
 
                         {/* Consent & Uploads */}
-                        <div className="bg-gray-50 p-4 rounded-md shadow-sm">
-                            <h4 className="font-bold text-lg text-htta-blue mb-2">Consent & Uploads</h4>
-                            <p className="text-gray-900"><strong>Privacy Consent:</strong> {data.consent_given ? 'Agreed' : 'Not Agreed'}</p> {/* Ensured text-gray-900 */}
-                            <p className="text-gray-900"><strong>Thumbmark Image:</strong> {data.thumbmark_image ? 'Uploaded' : 'Not Uploaded'}</p> {/* Ensured text-gray-900 */}
-                            <p className="text-gray-900"><strong>Picture Image:</strong> {data.picture_image ? 'Uploaded' : 'Not Uploaded'}</p> {/* Ensured text-gray-900 */}
+                        <div className="bg-gray-100 p-5 rounded-lg shadow-md">
+                            <h4 className="font-bold text-lg text-htta-blue mb-3">Consent & Uploads</h4>
+                            <p className="text-gray-900 mb-1"><strong>Privacy Consent:</strong> {data.consent_given ? 'Agreed' : 'Not Agreed'}</p>
+                            <p className="text-gray-900 mb-1"><strong>Thumbmark Image:</strong> {data.thumbmark_image ? 'Uploaded' : 'Not Uploaded'}</p>
+                            <p className="text-gray-900"><strong>Picture Image:</strong> {data.picture_image ? 'Uploaded' : 'Not Uploaded'}</p>
                         </div>
                     </div>
                 );
@@ -592,7 +628,7 @@ const RegistrationForm: React.FC = () => {
                 setCurrentStep(stepIndex);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
-                if (Object.keys(errors).length > 0) {
+                if (Object.keys(clientSideErrors).length > 0) {
                     alert('Please fill in all required fields for the current section before proceeding.');
                 }
             }
@@ -600,24 +636,24 @@ const RegistrationForm: React.FC = () => {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-8 bg-dark p-4 sm:p-8 rounded-lg shadow-xl"> {/* Adjusted padding for mobile */}
+        <form onSubmit={handleSubmit} className="space-y-8 bg-dark p-6 sm:p-10 rounded-xl shadow-2xl max-w-4xl mx-auto my-8 font-inter">
             {/* Progress Indicator */}
-            <div className="mb-8 overflow-x-auto pb-2"> {/* Added overflow-x-auto for small screens */}
-                <div className="flex justify-between items-center relative min-w-max"> {/* min-w-max to prevent wrapping */}
+            <div className="mb-8 overflow-x-auto pb-3">
+                <div className="flex justify-between items-center relative min-w-max">
                     {steps.map((step, index) => (
                         <React.Fragment key={index}>
                             <button
-                                type="button" // Important for buttons inside a form not to submit
+                                type="button"
                                 onClick={() => handleStepClick(index)}
-                                className={`flex flex-col items-center z-10 w-1/7 px-1 sm:px-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-htta-blue focus:ring-offset-2 rounded-full
+                                className={`flex flex-col items-center z-10 w-1/7 px-1 sm:px-2 cursor-pointer focus:outline-none focus:ring-3 focus:ring-htta-blue focus:ring-offset-2 rounded-full transition-all duration-300 ease-in-out
                                     ${index <= currentStep ? 'text-htta-blue' : 'text-gray-700'}`}
                             >
-                                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-dark transition-all duration-300 ease-in-out text-sm sm:text-base
+                                <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center font-bold text-dark transition-all duration-300 ease-in-out text-sm sm:text-base
                                     ${index === currentStep ? 'bg-htta-blue scale-110 shadow-lg' :
-                                      index < currentStep ? 'bg-htta-green' : 'bg-gray-300'}`}>
+                                    index < currentStep ? 'bg-htta-green' : 'bg-gray-300'}`}>
                                     {index + 1}
                                 </div>
-                                <div className={`text-center text-xs sm:text-sm mt-2 font-medium darkspace-nowrap overflow-hidden text-ellipsis max-w-full ${index <= currentStep ? 'text-htta-blue' : 'text-gray-900'}`}> {/* Changed to text-gray-900 */}
+                                <div className={`text-center text-xs sm:text-sm mt-2 font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-full ${index <= currentStep ? 'text-htta-blue' : 'text-gray-700'}`}>
                                     {step}
                                 </div>
                             </button>
@@ -631,16 +667,19 @@ const RegistrationForm: React.FC = () => {
             </div>
 
             {/* Section Title */}
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-htta-blue mb-6 text-center border-b-2 border-htta-gold pb-3">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-htta-blue mb-6 text-center border-b-2 border-htta-gold pb-4">
                 {steps[currentStep]}
             </h2>
 
             {/* Display general errors at the top of the form */}
-            {Object.keys(errors).length > 0 && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6 shadow-md">
+            {(Object.keys(errors).length > 0 || Object.keys(clientSideErrors).length > 0) && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-5 py-4 rounded-lg relative mb-6 shadow-md">
                     <strong className="font-bold">Please correct the following errors:</strong>
-                    <ul className="mt-2 list-disc list-inside">
+                    <ul className="mt-3 list-disc list-inside">
                         {Object.values(errors).map((error: string, index: number) => (
+                            <li key={index}>{error}</li>
+                        ))}
+                        {Object.values(clientSideErrors).map((error: string, index: number) => (
                             <li key={index}>{error}</li>
                         ))}
                     </ul>
@@ -648,17 +687,17 @@ const RegistrationForm: React.FC = () => {
             )}
 
             {/* Render Current Step Content */}
-            <div className="p-4 sm:p-6 border border-gray-200 rounded-lg bg-dark shadow-inner">
+            <div className="p-5 sm:p-8 border border-gray-200 rounded-xl bg-white shadow-inner">
                 {renderStepContent()}
             </div>
 
             {/* Navigation Buttons */}
-            <div className="flex flex-col sm:flex-row justify-between mt-8 gap-4">
+            <div className="flex flex-col sm:flex-row justify-between mt-8 gap-5">
                 {currentStep > 0 && (
                     <button
                         type="button"
                         onClick={handlePrevious}
-                        className="w-full sm:w-auto px-6 py-3 bg-gray-500 text-dark font-semibold rounded-full shadow-md hover:bg-gray-600 transition duration-300 transform hover:scale-105"
+                        className="w-full sm:w-auto px-8 py-3 bg-gray-500 text-white font-semibold rounded-full shadow-md hover:bg-gray-600 transition duration-300 transform hover:scale-105"
                     >
                         &larr; Previous
                     </button>
@@ -668,7 +707,8 @@ const RegistrationForm: React.FC = () => {
                     <button
                         type="button"
                         onClick={handleNext}
-                        className={`w-full sm:w-auto px-6 py-3 bg-htta-blue text-dark font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300 transform hover:scale-105 ${currentStep === 0 ? 'sm:ml-auto' : ''}`}
+                        className={`w-full sm:w-auto px-8 py-3 bg-htta-blue text-dark font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300 transform hover:scale-105 ${Object.keys(clientSideErrors).length > 0 ? 'opacity-50 cursor-not-allowed' : ''} ${currentStep === 0 ? 'sm:ml-auto' : ''}`}
+                        disabled={Object.keys(clientSideErrors).length > 0}
                     >
                         Next &rarr;
                     </button>
@@ -677,8 +717,8 @@ const RegistrationForm: React.FC = () => {
                 {currentStep === steps.length - 1 && (
                     <button
                         type="submit"
-                        disabled={processing}
-                        className={`w-full sm:w-auto px-8 py-3 bg-htta-green text-dark font-bold rounded-full shadow-lg hover:bg-green-700 transition duration-300 transform hover:scale-105 ${processing && 'opacity-50 cursor-not-allowed'}`}
+                        disabled={processing || Object.keys(clientSideErrors).length > 0}
+                        className={`w-full sm:w-auto px-10 py-3 bg-htta-green text-dark font-bold rounded-full shadow-lg hover:bg-green-700 transition duration-300 transform hover:scale-105 ${(processing || Object.keys(clientSideErrors).length > 0) && 'opacity-50 cursor-not-allowed'}`}
                     >
                         {processing ? (
                             <span className="flex items-center justify-center">

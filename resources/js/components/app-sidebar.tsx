@@ -2,19 +2,18 @@ import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
-import { type NavItem, type PageProps } from '@/types'; // Import PageProps
+import { type NavItem, type PageProps } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, UserCheck } from 'lucide-react'; // Import UserCheck icon for enrollments
+import { BookOpen, Folder, LayoutGrid, UserCheck } from 'lucide-react';
 
-// Assuming AppLogo is in components folder
 import AppLogo from './app-logo';
 
 // Define a type for your Auth user to access role
 interface AuthUser {
     id: number;
     name: string;
-    email_verified_at: string | null; // <--- ADD THIS LINE
-    role: string; // Assuming 'role' is on the user object
+    email_verified_at: string | null;
+    role: string;
 }
 
 // Extend PageProps to get the authenticated user
@@ -25,13 +24,13 @@ interface CustomPageProps extends PageProps {
 }
 
 export function AppSidebar() {
-    const { auth } = usePage<CustomPageProps>().props; // Get auth data from Inertia page props
-    const userRole = auth.user?.role; // Access the user's role
+    const { auth } = usePage<CustomPageProps>().props;
+    const userRole = auth.user?.role;
 
     // Main navigation items
     const mainNavItems: NavItem[] = [
         {
-            title: 'User Dashboard',
+            title: 'Dashboard',
             href: '/dashboard',
             icon: LayoutGrid,
         },
@@ -40,10 +39,11 @@ export function AppSidebar() {
     // Add Enrollment link if user is an admin
     if (userRole === 'admin') {
         mainNavItems.push({
-            title: 'Enrollments', // Changed title
-            href: '/admin/enrollments', // Changed href
-            icon: UserCheck, // A more fitting icon for enrollments
+            title: 'Enrollments',
+            href: '/admin/enrollments',
+            icon: UserCheck,
         });
+        
     }
 
     const footerNavItems: NavItem[] = [
@@ -60,11 +60,11 @@ export function AppSidebar() {
     ];
 
     return (
-        <Sidebar collapsible="icon" variant="inset">
-            <SidebarHeader>
+        <Sidebar collapsible="icon" variant="inset" className="htta-sidebar">
+            <SidebarHeader className="htta-sidebar-header">
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
+                        <SidebarMenuButton size="lg" asChild className="hover:bg-white/10 transition-colors">
                             <Link href="/dashboard" prefetch>
                                 <AppLogo />
                             </Link>
@@ -73,11 +73,11 @@ export function AppSidebar() {
                 </SidebarMenu>
             </SidebarHeader>
 
-            <SidebarContent>
+            <SidebarContent className="px-2">
                 <NavMain items={mainNavItems} />
             </SidebarContent>
 
-            <SidebarFooter>
+            <SidebarFooter className="border-t border-white/10">
                 <NavFooter items={footerNavItems} className="mt-auto" />
                 <NavUser />
             </SidebarFooter>
