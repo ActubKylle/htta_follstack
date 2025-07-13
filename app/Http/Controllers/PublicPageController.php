@@ -25,4 +25,8 @@ class PublicPageController extends Controller
     {
         return Inertia::render('Public/Contact');
     }
+    public function enrollNow()
+    {
+        return Inertia::render('Public/EnrollNow'); // Renders the new EnrollNow.tsx page
+    }
 }

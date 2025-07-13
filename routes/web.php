@@ -14,6 +14,8 @@ Route::get('/about', [PublicPageController::class, 'about'])->name('public.about
 Route::get('/programs', [PublicPageController::class, 'programs'])->name('public.programs');
 Route::get('/contact', [PublicPageController::class, 'contact'])->name('public.contact');
 
+Route::get('/enrollnow', [PublicPageController::class, 'enrollNow'])->name('public.enrollnow'); // Added new route
+
 // Route for your Registration Form submission
 Route::post('/register/learner', [LearnerRegistrationController::class, 'store'])->name('register.learner');
 

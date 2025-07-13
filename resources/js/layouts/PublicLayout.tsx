@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from '@inertiajs/react';
 
 const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuMenuOpen] = useState(false);
     
     // Get current path for active navigation
     const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
@@ -57,8 +57,9 @@ const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
                         <Link href="/" className="flex items-center space-x-4 group">
                             <div className="relative">
                                 <div className="w-16 h-16 bg-gradient-to-br from-white via-gray-50 to-white rounded-full flex items-center justify-center shadow-xl shadow-black/20 group-hover:shadow-2xl group-hover:shadow-yellow-400/30 transition-all duration-500 group-hover:scale-110">
+                                    {/* FIXED: Corrected image source */}
                                     <img 
-                                        src="logo.jpg" 
+                                        src="/images/htta_logo.png" 
                                         alt="HTTA Logo" 
                                         className="w-12 h-12 object-contain group-hover:scale-110 transition-transform duration-300"
                                     />
@@ -170,6 +171,7 @@ const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
                         <div className="text-center md:text-left">
                             <div className="flex items-center justify-center md:justify-start space-x-3 mb-6">
                                 <div className="w-12 h-12 bg-gradient-to-br from-white via-gray-50 to-white rounded-full flex items-center justify-center shadow-xl">
+                                    {/* FIXED: Corrected image source */}
                                     <img src="/images/htta_logo.png" alt="HTTA Logo" className="w-10 h-10 object-contain" />
                                 </div>
                                 <div>
