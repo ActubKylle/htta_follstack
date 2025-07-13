@@ -1,7 +1,7 @@
 <x-mail::message>
 # Congratulations, {{ $firstName }} {{ $lastName }}!
 
-Your enrollment application with [Your School Name] has been **accepted**!
+Your enrollment application with Highland Technical Training Academy INC has been **accepted**!
 
 You can now log in to our portal using the following credentials:
 

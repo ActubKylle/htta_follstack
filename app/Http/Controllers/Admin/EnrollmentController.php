@@ -17,31 +17,55 @@ class EnrollmentController extends Controller
     /**
      * Display the admin enrollment list with recent learner registrations.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $recentLearners = Learner::with(['address', 'user', 'courseEnrollments'])
-                                 ->orderBy('created_at', 'desc')
-                                 ->limit(10)
-                                 ->get()
-                                 ->map(function ($learner) {
-                                     $courseQualification = $learner->courseEnrollments->first() ? $learner->courseEnrollments->first()->course_qualification : 'N/A';
+        // Get filter and search parameters from the request
+        $search = $request->input('search');
+        $status = $request->input('status');
 
-                                     return [
-                                         'learner_id' => $learner->learner_id,
-                                         'first_name' => $learner->first_name,
-                                         'last_name' => $learner->last_name,
-                                         'email' => $learner->user->email ?? 'N/A',
-                                         'contact_no' => $learner->address->contact_no ?? 'N/A',
-                                         'course_qualification' => $courseQualification,
-                                         'created_at' => $learner->created_at,
-                                         'enrollment_status' => $learner->enrollment_status, // Include the enrollment status
-                                         'address' => $learner->address,
-                                         'user' => $learner->user,
-                                     ];
-                                 });
+        $query = Learner::with(['address', 'user', 'courseEnrollments']);
+
+        // Apply search filter
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('first_name', 'like', '%' . $search . '%')
+                  ->orWhere('last_name', 'like', '%' . $search . '%')
+                  ->orWhereHas('user', function ($uq) use ($search) {
+                      $uq->where('email', 'like', '%' . $search . '%');
+                  });
+            });
+        }
+
+        // Apply status filter
+        if ($status && in_array($status, ['pending', 'accepted', 'rejected'])) {
+            $query->where('enrollment_status', $status);
+        }
+
+        $recentLearners = $query->orderBy('created_at', 'desc')
+                                ->paginate(10) // Paginate with 10 items per page
+                                ->through(function ($learner) {
+                                    $courseQualification = $learner->courseEnrollments->first() ? $learner->courseEnrollments->first()->course_qualification : 'N/A';
+
+                                    return [
+                                        'learner_id' => $learner->learner_id,
+                                        'first_name' => $learner->first_name,
+                                        'last_name' => $learner->last_name,
+                                        'email' => $learner->user->email ?? 'N/A',
+                                        'contact_no' => $learner->address->contact_no ?? 'N/A',
+                                        'course_qualification' => $courseQualification,
+                                        'created_at' => $learner->created_at,
+                                        'enrollment_status' => $learner->enrollment_status,
+                                        'address' => $learner->address,
+                                        'user' => $learner->user,
+                                    ];
+                                });
 
         return Inertia::render('Admin/Enrollments', [
             'recentLearners' => $recentLearners,
+            'filters' => [
+                'search' => $search,
+                'status' => $status,
+            ],
         ]);
     }
 
