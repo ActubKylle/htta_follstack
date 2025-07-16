@@ -23,7 +23,7 @@ interface LearnerData {
     learner_id: number;
     first_name: string;
     last_name: string;
-    email: string;
+    email: string; // This is the 'email' coming from the server transform
     contact_no: string;
     course_qualification: string;
     created_at: string;
@@ -31,8 +31,9 @@ interface LearnerData {
     address?: {
         city_municipality: string;
         province: string;
+        email_address?: string; // Add email_address to LearnerData's address
     };
-    user?: {
+    user?: { // Keep this for accepted learners
         email: string;
     };
 }
@@ -322,19 +323,19 @@ export default function Enrollments() {
                                 </div>
 
                                 {/* Status Filter */}
-                              <div className="w-full lg:w-64">
-    <select
-        value={statusFilter}
-        onChange={(e) => setStatusFilter(e.target.value)}
-        // Changed text-gray-700 to text-gray-900 for darker text
-        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900"
-    >
-        <option value="">All Statuses</option>
-        <option value="pending">Pending</option>
-        <option value="accepted">Accepted</option>
-        <option value="rejected">Rejected</option>
-    </select>
-</div>
+                                <div className="w-full lg:w-64">
+                                    <select
+                                        value={statusFilter}
+                                        onChange={(e) => setStatusFilter(e.target.value)}
+                                        // Changed text-gray-700 to text-gray-900 for darker text
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900"
+                                    >
+                                        <option value="">All Statuses</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="accepted">Accepted</option>
+                                        <option value="rejected">Rejected</option>
+                                    </select>
+                                </div>
                                 {/* Clear Filters Button */}
                                 <button
                                     onClick={() => { setSearch(''); setStatusFilter(''); applyFilters(1); }}
@@ -375,7 +376,8 @@ export default function Enrollments() {
                                                                 <p className="font-semibold text-gray-900">{learner.first_name} {learner.last_name}</p>
                                                                 <p className="text-sm text-gray-500 flex items-center gap-1">
                                                                     <Mail className="w-4 h-4 text-gray-400" />
-                                                                    {learner.user?.email || 'N/A'}
+                                                                    {/* MODIFICATION HERE: Check learner.user?.email first, then learner.address?.email_address */}
+                                                                    {learner.user?.email || learner.address?.email_address || 'N/A'}
                                                                 </p>
                                                                 <p className="text-sm text-gray-500 flex items-center gap-1">
                                                                     <Phone className="w-4 h-4 text-gray-400" />
@@ -486,7 +488,8 @@ export default function Enrollments() {
                                             <div className="space-y-3 mb-4">
                                                 <div className="flex items-center gap-2 text-sm text-gray-600">
                                                     <Mail className="w-4 h-4 flex-shrink-0" />
-                                                    {learner.user?.email || 'N/A'}
+                                                    {/* MODIFICATION HERE FOR MOBILE VIEW: Check learner.user?.email first, then learner.address?.email_address */}
+                                                    {learner.user?.email || learner.address?.email_address || 'N/A'}
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm text-gray-600">
                                                     <Phone className="w-4 h-4 flex-shrink-0" />
@@ -795,7 +798,7 @@ export default function Enrollments() {
                 .data-[state=open][data-side=bottom]:slide-in-from-bottom { animation-name: slideInFromTop; }
                 .data-[state=closed][data-side=bottom]:slide-out-to-bottom { animation-name: slideOutToTop; }
                 .data-[state=open][data-side=left]:slide-in-from-left { animation-name: slideInFromLeft; }
-                .data-[state=closed][data-side=left]:slide-out-to-left { animation-name: slideOutToLeft; }
+                .data-[state=closed][data-side=left]:slide-out-to-left { animation: slideOutToLeft; }
 
 
                 /* Custom animations for toast notifications */

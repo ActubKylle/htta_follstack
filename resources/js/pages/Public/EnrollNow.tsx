@@ -1,6 +1,6 @@
 import React from 'react';
 import PublicLayout from '@/Layouts/PublicLayout'; // Adjust path if your PublicLayout is elsewhere
-import RegistrationForm from './RegistrationForm'; // Import the RegistrationForm component
+import RegistrationForm from './RegistrationForms'; // Import the RegistrationForm component
 
 const EnrollNow: React.FC = () => {
     return (

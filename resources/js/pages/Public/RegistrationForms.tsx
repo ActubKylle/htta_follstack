@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm, router } from '@inertiajs/react';
+import Swal from 'sweetalert2'; // Import SweetAlert2
 
 // Define interfaces for your form data, options, and reusable InputField props
 interface FormData {
@@ -326,7 +327,13 @@ const RegistrationForm: React.FC = () => {
         } else {
             // Display alert only if there are client-side errors
             if (Object.keys(clientSideErrors).length > 0) {
-                alert('Please fill in all required fields for this section.');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Missing Information',
+                    text: 'Please fill in all required fields for this section.',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#3B82F6' // htta-blue color
+                });
             }
         }
     };
@@ -347,7 +354,13 @@ const RegistrationForm: React.FC = () => {
                     reset();
                     setCurrentStep(0); // Reset to first step on success
                     setClientSideErrors({}); // Clear client-side errors on success
-                    alert('Registration successful! Please check your email for verification and your temporary password.');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Registration Successful!',
+                        text: 'Your application has been received and is now waiting for approval by the administrator.',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#10B981' // htta-green color
+                    });
                 },
                 onError: (validationErrors) => {
                     console.error('Validation Errors:', validationErrors);
@@ -365,12 +378,24 @@ const RegistrationForm: React.FC = () => {
                         };
                         const stepWithError = errorStepMap[firstErrorField] !== undefined ? errorStepMap[firstErrorField] : currentStep;
                         setCurrentStep(stepWithError);
-                        alert('Please correct the errors in the form.');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Form Errors',
+                            text: 'Please correct the errors in the form.',
+                            confirmButtonText: 'OK',
+                            confirmButtonColor: '#EF4444' // red color
+                        });
                     }
                 }
             });
         } else {
-            alert('Please review the form for errors before submitting.');
+            Swal.fire({
+                icon: 'error',
+                title: 'Form Validation Failed',
+                text: 'Please review the form for errors before submitting.',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#EF4444'
+            });
         }
     };
 
@@ -629,7 +654,13 @@ const RegistrationForm: React.FC = () => {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
                 if (Object.keys(clientSideErrors).length > 0) {
-                    alert('Please fill in all required fields for the current section before proceeding.');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Complete Current Section',
+                        text: 'Please fill in all required fields for the current section before proceeding.',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#3B82F6'
+                    });
                 }
             }
         }

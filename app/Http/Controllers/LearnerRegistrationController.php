@@ -4,17 +4,14 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Learner;
-use App\Models\User;
-use App\Models\Classification; // Added
-use App\Models\DisabilityType; // Added
+use App\Models\User; // Still needed for type hinting, but not for creation here
+use App\Models\Classification;
+use App\Models\DisabilityType;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
-use Illuminate\Auth\Events\Registered;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\NewUserWelcomeMail; // Make sure this Mail class exists
-use Illuminate\Validation\ValidationException; // Added for specific validation error handling
-use Illuminate\Support\Facades\Log; // Added for logging
+use Illuminate\Support\Facades\Hash; // Still needed for hashing if used elsewhere, but not for new user here
+use Illuminate\Support\Str; // Still needed for string functions if used elsewhere, but not for new password here
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Log;
 
 class LearnerRegistrationController extends Controller
 {
@@ -40,7 +37,7 @@ class LearnerRegistrationController extends Controller
                 'employment_type' => 'nullable|string|max:50',
                 'parent_guardian_name' => 'nullable|string|max:100',
                 'parent_guardian_mailing_address' => 'nullable|string|max:255',
-                'email' => 'required|string|email|max:255|unique:users,email',
+                'email' => 'required|string|email|max:255|unique:users,email', // Email still unique to prevent duplicate user accounts later
                 'number_street' => 'required|string|max:255',
                 'city_municipality' => 'required|string|max:100',
                 'barangay' => 'required|string|max:100',
@@ -65,16 +62,15 @@ class LearnerRegistrationController extends Controller
                 'masteral' => 'nullable|boolean',
                 'doctorate' => 'nullable|boolean',
 
-
                 // Classifications:
                 'classifications' => 'nullable|array',
                 'classifications.*' => 'integer|exists:classifications,id',
-                'other_classification_details' => 'nullable|string|max:255|required_if:classifications.*,24', // Use 'classifications.*' for 'Others' ID
+                'other_classification_details' => 'nullable|string|max:255|required_if:classifications.*,24',
 
                 // Disability Types:
                 'disability_types' => 'nullable|array',
                 'disability_types.*' => 'integer|exists:disability_types,id',
-                'cause_of_disability' => 'nullable|string|max:50|required_if:disability_types,true', // 'true' means if the array is not empty
+                'cause_of_disability' => 'nullable|string|max:50|required_if:disability_types,true',
 
                 'course_qualification' => 'required|string|max:255',
                 'scholarship_package' => 'nullable|string|max:255',
@@ -98,23 +94,19 @@ class LearnerRegistrationController extends Controller
                 $pictureImagePath = str_replace('public/', 'storage/', $pictureImagePath);
             }
 
-            // --- 3. Generate Password & Create User ---
-            $generatedPassword = Str::random(12);
+            // --- 3. Removed: Generate Password & Create User (This will now happen on admin approval) ---
+            // $generatedPassword = Str::random(12);
+            // $user = User::create([
+            //     'name' => $validatedData['first_name'] . ' ' . $validatedData['last_name'],
+            //     'email' => $validatedData['email'],
+            //     'password' => Hash::make($generatedPassword),
+            //     'role' => 'learner',
+            //     'email_verified_at' => null,
+            // ]);
 
-            $user = User::create([
-                'name' => $validatedData['first_name'] . ' ' . $validatedData['last_name'],
-                'email' => $validatedData['email'],
-                'password' => Hash::make($generatedPassword),
-                'role' => 'learner',
-                'email_verified_at' => null,
-            ]);
-
-            event(new Registered($user));
-            Mail::to($user->email)->send(new NewUserWelcomeMail($user, $generatedPassword));
-
-            // --- 4. Create Learner Record ---
+            // --- 4. Create Learner Record (user_id will be null initially) ---
             $learner = Learner::create([
-                'user_id' => $user->id,
+                'user_id' => null, // Set user_id to null initially
                 'entry_date' => now()->toDateString(),
                 'last_name' => $validatedData['last_name'],
                 'first_name' => $validatedData['first_name'],
@@ -133,6 +125,7 @@ class LearnerRegistrationController extends Controller
                 'parent_guardian_name' => $validatedData['parent_guardian_name'] ?? null,
                 'parent_guardian_mailing_address' => $validatedData['parent_guardian_mailing_address'] ?? null,
                 't2mis_auto_generated' => true,
+                'enrollment_status' => 'pending', // Explicitly set to pending
             ]);
 
             // --- 5. Create Related Records ---
@@ -143,7 +136,7 @@ class LearnerRegistrationController extends Controller
                 'district' => $validatedData['district'] ?? null,
                 'province' => $validatedData['province'],
                 'region' => $validatedData['region'],
-                'email_address' => $validatedData['email'],
+                'email_address' => $validatedData['email'], // Store email here for later user creation
                 'facebook_account' => $validatedData['facebook_account'] ?? null,
                 'contact_no' => $validatedData['contact_no'],
             ]);
@@ -173,16 +166,14 @@ class LearnerRegistrationController extends Controller
                     if ($classificationId == 24 && !empty($validatedData['other_classification_details'])) {
                         $pivotEntry['other_classification_details'] = $validatedData['other_classification_details'];
                     } else {
-                        // Ensure other_classification_details is always set, even if null, for consistency
                         $pivotEntry['other_classification_details'] = null;
                     }
                     $pivotData[$classificationId] = $pivotEntry;
                 }
-                $learner->classifications()->sync($pivotData); // Using sync (detaches existing ones not in array)
+                $learner->classifications()->sync($pivotData);
             } else {
-                $learner->classifications()->detach(); // If no classifications, remove all
+                $learner->classifications()->detach();
             }
-
 
             // Create Disability records (One-to-Many)
             if (!empty($validatedData['disability_types'])) {
@@ -194,12 +185,11 @@ class LearnerRegistrationController extends Controller
                         'cause_of_disability' => $causeOfDisability,
                     ];
                 }
-                $learner->disabilities()->delete(); // Clear existing before adding new
+                $learner->disabilities()->delete();
                 $learner->disabilities()->createMany($disabilityRecords);
             } else {
-                $learner->disabilities()->delete(); // If no disabilities, remove all
+                $learner->disabilities()->delete();
             }
-
 
             // Create Course Enrollment
             $learner->courseEnrollments()->create([
@@ -223,22 +213,17 @@ class LearnerRegistrationController extends Controller
 
             DB::commit();
 
-            return redirect()->route('public.home')->with('success', 'Registration successful! Please check your email for verification and your temporary password.');
+            // Redirect back to the same page with a success flash message
+            return redirect()->back()->with('success_message', 'Registration Submitted! Thank you for registering. Your application has been received and is now waiting for approval by the administrator.');
 
         } catch (ValidationException $e) {
             DB::rollBack();
             Log::error('Validation failed during learner registration: ' . $e->getMessage(), $e->errors());
-            return redirect()->back()->withErrors($e->errors())->withInput(); // Added withInput() to retain form data
+            return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Learner registration failed: ' . $e->getMessage() . ' on line ' . $e->getLine() . ' in ' . $e->getFile());
-            // *** FOR DEBUGGING ***
-            // Change this line to return actual error for frontend debugging.
-            // Remember to change it back for production.
             return redirect()->back()->withErrors(['registration_error' => 'An internal server error occurred: ' . $e->getMessage() . ' (File: ' . basename($e->getFile()) . ', Line: ' . $e->getLine() . ')'])->withInput();
-
-            // *** FOR PRODUCTION ***
-            // return redirect()->back()->withErrors(['registration_error' => 'An error occurred during registration. Please try again. If the problem persists, please contact support.'])->withInput();
         }
     }
 }
