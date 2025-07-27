@@ -48,6 +48,12 @@ class Learner extends Model
     {
         return $this->hasOne(LearnerAddress::class, 'learner_id', 'learner_id');
     }
+      public function programs()
+    {
+        return $this->belongsToMany(Program::class, 'course_enrollments', 'learner_id', 'program_id')
+                    ->withPivot('scholarship_package') // Include any pivot table fields you need
+                    ->withTimestamps(); // If your pivot table has timestamps
+    }
 
     public function educationalAttainment()
     {

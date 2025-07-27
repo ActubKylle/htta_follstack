@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useForm, router } from '@inertiajs/react';
+import Swal from 'sweetalert2'; // Import SweetAlert2
 
 // Define interfaces for your form data, options, and reusable InputField props
 interface FormData {
@@ -91,9 +92,10 @@ interface InputFieldProps {
 }
 
 // Reusable Input Field Component
-const InputField: React.FC<InputFieldProps> = ({
-    id, label, type = 'text', value, onChange, error, placeholder, min, max, options, isChecked, onCheckboxChange, name, className
-}) => (
+const InputField: React.FC<InputFieldProps> = React.memo(({
+    id, label, type = 'text', value, onChange, error, placeholder, min, max, 
+    options, isChecked, onCheckboxChange, name, className
+}) => 
     <div className="mb-5">
         <label htmlFor={id} className="block text-gray-900 text-sm font-semibold mb-2">
             {label}
@@ -156,9 +158,29 @@ const InputField: React.FC<InputFieldProps> = ({
     </div>
 );
 
+const validateField = (field: keyof FormData, value: any): string | null => {
+    // Required fields for each step
+    const requiredFields = [
+        'last_name', 'first_name', 'gender', 'civil_status', 'birth_date', 'age', 'email', 'nationality',
+        'number_street', 'city_municipality', 'barangay', 'province', 'region', 'contact_no', 'parent_guardian_name', 'parent_guardian_mailing_address',
+        'course_qualification', 'consent_given', 'thumbmark_image', 'picture_image'
+    ];
+
+    if (requiredFields.includes(field as string)) {
+        if (typeof value === 'string' && !value.trim()) return 'This field is required.';
+        if (typeof value === 'number' && (value === '' || isNaN(value))) return 'This field is required.';
+        if (field === 'consent_given' && !value) return 'You must agree to the privacy disclaimer.';
+        if ((field === 'thumbmark_image' || field === 'picture_image') && !value) return 'This image is required.';
+    }
+
+    // Add custom field validation as needed
+    return null;
+};
+
+
+
 const RegistrationForm: React.FC = () => {
-    // Explicitly type errors as Record<string, string> using type assertion
-    const { data, setData, post, processing, errors: rawErrors, reset } = useForm<FormData>({
+    const { data, setData, post, processing, errors, reset } = useForm<FormData>({
         last_name: '', first_name: '', middle_name: '', extension_name: '',
         gender: '', civil_status: '', birth_date: '', age: '',
         birthplace_city_municipality: '', birthplace_province: '', birthplace_region: '',
@@ -189,21 +211,19 @@ const RegistrationForm: React.FC = () => {
         consent_given: false,
         thumbmark_image: null, picture_image: null,
     });
-    const errors = rawErrors as Record<string, string>;
 
     const [currentStep, setCurrentStep] = useState(0);
     // State to manage client-side validation errors
     const [clientSideErrors, setClientSideErrors] = useState<Record<string, string>>({});
-    const [submitted, setSubmitted] = useState(false); // Track if form is submitted
 
     const steps = [
-        "Personal Info",
-        "Contact & Address",
+        "Personal",
+        "Contact",
         "Education",
-        "Class & Disability",
-        "Course & Scholarship",
-        "Consent & Uploads",
-        "Review & Submit"
+        "Class",
+        "Course",
+        "Consent",
+        "Review"    
     ];
 
     // Simulate fetching options (replace with actual Inertia props or API call if needed)
@@ -252,6 +272,32 @@ const RegistrationForm: React.FC = () => {
         ]);
     }, []);
 
+    const calculateAge = (birthdate: string): number | '' => {
+    if (!birthdate) return '';
+    const birthDateObj = new Date(birthdate);
+    const today = new Date();
+    let calculatedAge = today.getFullYear() - birthDateObj.getFullYear();
+    const monthDifference = today.getMonth() - birthDateObj.getMonth();
+    if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDateObj.getDate())) {
+        calculatedAge--;
+    }
+    return calculatedAge >= 0 ? calculatedAge : '';
+};
+
+    const handleInputChange = (field: keyof FormData, value: any) => {
+    setData(field, value);
+    const errorMsg = validateField(field, value);
+    setClientSideErrors(prev => {
+        const newErrors = { ...prev };
+        if (errorMsg) {
+            newErrors[field] = errorMsg;
+        } else {
+            delete newErrors[field];
+        }
+        return newErrors;
+    });
+};
+
     const validateStep = async (step: number): Promise<boolean> => {
         let currentStepFields: (keyof FormData)[] = [];
         const newLocalErrors: Record<string, string> = {}; // Use a new object for local errors
@@ -292,7 +338,7 @@ const RegistrationForm: React.FC = () => {
             if (typeof value === 'string' && !value.trim() &&
                 !['middle_name', 'extension_name', 'facebook_account', 'scholarship_package', 'other_classification_details', 'cause_of_disability'].includes(field as string)) {
                 newLocalErrors[field] = 'This field is required.';
-            } else if (typeof value === 'number' && (value === '' || isNaN(Number(value)))) { // Fix: always use Number(value)
+            } else if (typeof value === 'number' && (value === '' || isNaN(value as number))) {
                 newLocalErrors[field] = 'This field is required.';
             }
         });
@@ -321,7 +367,7 @@ const RegistrationForm: React.FC = () => {
     };
 
 
-    const handleNext = async () => {
+const handleNext = useCallback(async () => {
         const isValid = await validateStep(currentStep);
         if (isValid) {
             setCurrentStep((prev) => prev + 1);
@@ -329,15 +375,22 @@ const RegistrationForm: React.FC = () => {
         } else {
             // Display alert only if there are client-side errors
             if (Object.keys(clientSideErrors).length > 0) {
-                alert('Please fill in all required fields for this section.');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Missing Information',
+                    text: 'Please fill in all required fields for this section.',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#3B82F6' // htta-blue color
+                });
             }
         }
-    };
+}, [currentStep, validateStep]);
 
-    const handlePrevious = () => {
-        setCurrentStep((prev) => prev - 1);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
+ const handlePrevious = useCallback(() => {
+    setCurrentStep((prev) => prev - 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}, []);
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -349,8 +402,14 @@ const RegistrationForm: React.FC = () => {
                 onSuccess: () => {
                     reset();
                     setCurrentStep(0); // Reset to first step on success
-                    setClientSideErrors({});
-                    setSubmitted(true); // Show approval message
+                    setClientSideErrors({}); // Clear client-side errors on success
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Registration Successful!',
+                        text: 'Your application has been received and is now waiting for approval by the administrator.',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#10B981' // htta-green color
+                    });
                 },
                 onError: (validationErrors) => {
                     console.error('Validation Errors:', validationErrors);
@@ -368,29 +427,51 @@ const RegistrationForm: React.FC = () => {
                         };
                         const stepWithError = errorStepMap[firstErrorField] !== undefined ? errorStepMap[firstErrorField] : currentStep;
                         setCurrentStep(stepWithError);
-                        alert('Please correct the errors in the form.');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Form Errors',
+                            text: 'Please correct the errors in the form.',
+                            confirmButtonText: 'OK',
+                            confirmButtonColor: '#EF4444' // red color
+                        });
                     }
                 }
             });
         } else {
-            alert('Please review the form for errors before submitting.');
+            Swal.fire({
+                icon: 'error',
+                title: 'Form Validation Failed',
+                text: 'Please review the form for errors before submitting.',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#EF4444'
+            });
         }
     };
 
     // Handler for educational attainment radio buttons to ensure only one is true
-    const handleEducationalAttainmentChange = (field: keyof FormData, isChecked: boolean) => {
-        setData((prevData: FormData) => {
-            const newData = { ...prevData };
-            educationalAttainmentLevels.forEach(level => {
-                newData[level.value as keyof FormData] = false;
-            });
-            newData[field] = isChecked;
-            return newData;
+   const handleEducationalAttainmentChange = (field: keyof FormData, isChecked: boolean) => {
+    setData(prevData => {
+        const newData = { ...prevData };
+        educationalAttainmentLevels.forEach(level => {
+            newData[level.value as keyof FormData] = false;
         });
-    };
-
+        newData[field] = isChecked;
+        return newData;
+    });
+    // Validate group
+    const isAnySelected = educationalAttainmentLevels.some(level => field === level.value && isChecked);
+    setClientSideErrors(prev => {
+        const newErrors = { ...prev };
+        if (!isAnySelected) {
+            newErrors.educational_attainment_level = 'Please select your highest educational attainment.';
+        } else {
+            delete newErrors.educational_attainment_level;
+        }
+        return newErrors;
+    });
+};
     const handleCheckboxChange = (field: keyof FormData, id: number) => {
-        setData((prevData: FormData) => {
+        setData(prevData => {
             const currentArray = (prevData[field] as number[] | undefined) || [];
             const newArray = currentArray.includes(id)
                 ? currentArray.filter(item => item !== id)
@@ -399,10 +480,20 @@ const RegistrationForm: React.FC = () => {
         });
     };
 
-    // Only allow file input events for file fields
     const handleFileChange = (field: keyof FormData, e: React.ChangeEvent<HTMLInputElement>) => {
-        setData(field as string, e.target.files && e.target.files.length > 0 ? e.target.files[0] : null);
-    };
+    const file = e.target.files ? e.target.files[0] : null;
+    setData(field, file);
+    const errorMsg = validateField(field, file);
+    setClientSideErrors(prev => {
+        const newErrors = { ...prev };
+        if (errorMsg) {
+            newErrors[field] = errorMsg;
+        } else {
+            delete newErrors[field];
+        }
+        return newErrors;
+    });
+};
 
     const renderStepContent = () => {
         // Helper to get the selected educational attainment label for review
@@ -415,51 +506,57 @@ const RegistrationForm: React.FC = () => {
             case 0: // Personal Information
                 return (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <InputField id="last_name" label="Last Name" value={data.last_name} onChange={e => setData('last_name' as string, e.target.value)} error={errors.last_name || clientSideErrors.last_name} />
-                        <InputField id="first_name" label="First Name" value={data.first_name} onChange={e => setData('first_name' as string, e.target.value)} error={errors.first_name || clientSideErrors.first_name} />
-                        <InputField id="middle_name" label="Middle Name" value={data.middle_name} onChange={e => setData('middle_name' as string, e.target.value)} error={errors.middle_name || clientSideErrors.middle_name} />
-                        <InputField id="extension_name" label="Extension Name (Jr., Sr.)" value={data.extension_name} onChange={e => setData('extension_name' as string, e.target.value)} error={errors.extension_name || clientSideErrors.extension_name} />
+                            <InputField
+                                id="last_name"
+                                label="Last Name"
+                                value={data.last_name}
+                                onChange={e => handleInputChange('last_name', e.target.value)}
+                                error={errors.last_name || clientSideErrors.last_name}
+                            />       
+                         <InputField id="first_name" label="First Name" value={data.first_name} onChange={e => handleInputChange('first_name', e.target.value)} error={errors.first_name || clientSideErrors.first_name} />
+                        <InputField id="middle_name" label="Middle Name" value={data.middle_name} onChange={e => handleInputChange('middle_name', e.target.value)} error={errors.middle_name || clientSideErrors.middle_name} />
+                        <InputField id="extension_name" label="Extension Name (Jr., Sr.)" value={data.extension_name} onChange={e => handleInputChange('extension_name', e.target.value)} error={errors.extension_name || clientSideErrors.extension_name} />
 
                         <div className="mb-5">
                             <label className="block text-gray-900 text-sm font-semibold mb-2">Gender</label>
                             <div className="flex flex-wrap items-center gap-6">
                                 <label htmlFor="gender_male" className="flex items-center text-gray-900 cursor-pointer">
-                                    <InputField id="gender_male" label="" type="radio" value="Male" onCheckboxChange={e => setData('gender' as string, e.target.value)} isChecked={data.gender === 'Male'} name="gender" /> Male
+                                    <InputField id="gender_male" label="" type="radio" value="Male" onCheckboxChange={e => handleInputChange('gender', e.target.value)} isChecked={data.gender === 'Male'} name="gender" /> Male
                                 </label>
                                 <label htmlFor="gender_female" className="flex items-center text-gray-900 cursor-pointer">
-                                    <InputField id="gender_female" label="" type="radio" value="Female" onCheckboxChange={e => setData('gender' as string, e.target.value)} isChecked={data.gender === 'Female'} name="gender" /> Female
+                                    <InputField id="gender_female" label="" type="radio" value="Female" onCheckboxChange={e => handleInputChange('gender', e.target.value)} isChecked={data.gender === 'Female'} name="gender" /> Female
                                 </label>
                                 {errors.gender && <p className="text-red-500 text-xs italic mt-1">{errors.gender}</p>}
                                 {clientSideErrors.gender && <p className="text-red-500 text-xs italic mt-1">{clientSideErrors.gender}</p>}
                             </div>
                         </div>
 
-                        <InputField id="civil_status" label="Civil Status" type="select" value={data.civil_status} onChange={e => setData('civil_status' as string, e.target.value)} error={errors.civil_status || clientSideErrors.civil_status}
+                        <InputField id="civil_status" label="Civil Status" type="select" value={data.civil_status} onChange={e => handleInputChange('civil_status', e.target.value)} error={errors.civil_status || clientSideErrors.civil_status}
                             options={[
                                 { value: 'Single', label: 'Single' }, { value: 'Married', label: 'Married' },
                                 { value: 'Widowed/Divorced/Annulled', label: 'Widowed/Divorced/Annulled' },
                                 { value: 'Common Law/Live-in', label: 'Common Law/Live-in' },
                             ]}
                         />
-                        <InputField id="birth_date" label="Birthdate" type="date" value={data.birth_date} onChange={e => setData('birth_date' as string, e.target.value)} error={errors.birth_date || clientSideErrors.birth_date} />
-                        <InputField id="age" label="Age" type="number" value={data.age} onChange={e => setData('age' as string, parseInt(e.target.value) || '')} error={errors.age || clientSideErrors.age} min="1" />
-                        <InputField id="nationality" label="Nationality" value={data.nationality} onChange={e => setData('nationality' as string, e.target.value)} error={errors.nationality || clientSideErrors.nationality} />
-                        <InputField id="email" label="Email Address" type="email" value={data.email} onChange={e => setData('email' as string, e.target.value)} error={errors.email || clientSideErrors.email} />
+                        <InputField id="birth_date" label="Birthdate" type="date"  value={data.birth_date} onChange={e => {handleInputChange('birth_date', e.target.value); handleInputChange('age', calculateAge(e.target.value)); }} error={errors.birth_date || clientSideErrors.birth_date} />
+                        <InputField id="age" label="Age" type="number" readOnly value={data.age} onChange={e => handleInputChange('age', parseInt(e.target.value) || '')} error={errors.age || clientSideErrors.age} min="1" />
+                        <InputField id="nationality" label="Nationality" value={data.nationality} onChange={e => handleInputChange('nationality', e.target.value)} error={errors.nationality || clientSideErrors.nationality} />
+                        <InputField id="email" label="Email Address" type="email" value={data.email} onChange={e => handleInputChange('email', e.target.value)} error={errors.email || clientSideErrors.email} />
                     </div>
                 );
             case 1: // Contact & Address
                 return (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <InputField id="number_street" label="Number, Street" value={data.number_street} onChange={e => setData('number_street' as string, e.target.value)} error={errors.number_street || clientSideErrors.number_street} />
-                        <InputField id="barangay" label="Barangay" value={data.barangay} onChange={e => setData('barangay' as string, e.target.value)} error={errors.barangay || clientSideErrors.barangay} />
-                        <InputField id="city_municipality" label="City/Municipality" value={data.city_municipality} onChange={e => setData('city_municipality' as string, e.target.value)} error={errors.city_municipality || clientSideErrors.city_municipality} />
-                        <InputField id="district" label="District" value={data.district} onChange={e => setData('district' as string, e.target.value)} error={errors.district || clientSideErrors.district} />
-                        <InputField id="province" label="Province" value={data.province} onChange={e => setData('province' as string, e.target.value)} error={errors.province || clientSideErrors.province} />
-                        <InputField id="region" label="Region" value={data.region} onChange={e => setData('region' as string, e.target.value)} error={errors.region || clientSideErrors.region} />
-                        <InputField id="contact_no" label="Contact No." value={data.contact_no} onChange={e => setData('contact_no' as string, e.target.value)} error={errors.contact_no || clientSideErrors.contact_no} />
-                        <InputField id="facebook_account" label="Facebook Account" value={data.facebook_account} onChange={e => setData('facebook_account' as string, e.target.value)} error={errors.facebook_account || clientSideErrors.facebook_account} />
-                        <InputField id="parent_guardian_name" label="Parent/Guardian Name" value={data.parent_guardian_name} onChange={e => setData('parent_guardian_name' as string, e.target.value)} error={errors.parent_guardian_name || clientSideErrors.parent_guardian_name} />
-                        <InputField id="parent_guardian_mailing_address" label="Parent/Guardian Mailing Address" type="textarea" value={data.parent_guardian_mailing_address} onChange={e => setData('parent_guardian_mailing_address' as string, e.target.value)} error={errors.parent_guardian_mailing_address || clientSideErrors.parent_guardian_mailing_address} />
+                        <InputField id="number_street" label="Number, Street" value={data.number_street} onChange={e => handleInputChange('number_street', e.target.value)} error={errors.number_street || clientSideErrors.number_street} />
+                        <InputField id="barangay" label="Barangay" value={data.barangay} onChange={e => handleInputChange('barangay', e.target.value)} error={errors.barangay || clientSideErrors.barangay} />
+                        <InputField id="city_municipality" label="City/Municipality" value={data.city_municipality} onChange={e => handleInputChange('city_municipality', e.target.value)} error={errors.city_municipality || clientSideErrors.city_municipality} />
+                        <InputField id="district" label="District" value={data.district} onChange={e => handleInputChange('district', e.target.value)} error={errors.district || clientSideErrors.district} />
+                        <InputField id="province" label="Province" value={data.province} onChange={e => handleInputChange('province', e.target.value)} error={errors.province || clientSideErrors.province} />
+                        <InputField id="region" label="Region" value={data.region} onChange={e => handleInputChange('region', e.target.value)} error={errors.region || clientSideErrors.region} />
+                        <InputField id="contact_no" label="Contact No." value={data.contact_no} onChange={e => handleInputChange('contact_no', e.target.value)} error={errors.contact_no || clientSideErrors.contact_no} />
+                        <InputField id="facebook_account" label="Facebook Account" value={data.facebook_account} onChange={e => handleInputChange('facebook_account', e.target.value)} error={errors.facebook_account || clientSideErrors.facebook_account} />
+                        <InputField id="parent_guardian_name" label="Parent/Guardian Name" value={data.parent_guardian_name} onChange={e => handleInputChange('parent_guardian_name', e.target.value)} error={errors.parent_guardian_name || clientSideErrors.parent_guardian_name} />
+                        <InputField id="parent_guardian_mailing_address" label="Parent/Guardian Mailing Address" type="textarea" value={data.parent_guardian_mailing_address} onChange={e => handleInputChange('parent_guardian_mailing_address', e.target.value)} error={errors.parent_guardian_mailing_address || clientSideErrors.parent_guardian_mailing_address} />
                     </div>
                 );
             case 2: // Educational Background
@@ -498,7 +595,7 @@ const RegistrationForm: React.FC = () => {
                                 ))}
                             </div>
                             {data.classifications.includes(24) && ( // Assuming 24 is the ID for 'Others'
-                                <InputField id="other_classification_details" label="Others (Please Specify)" value={data.other_classification_details} onChange={e => setData('other_classification_details' as string, e.target.value)} error={errors.other_classification_details || clientSideErrors.other_classification_details} className="mt-5" />
+                                <InputField id="other_classification_details" label="Others (Please Specify)" value={data.other_classification_details} onChange={e => handleInputChange('other_classification_details', e.target.value)} error={errors.other_classification_details || clientSideErrors.other_classification_details} className="mt-5" />
                             )}
                             {errors.classifications && <p className="text-red-500 text-xs italic mt-1">{errors.classifications}</p>}
                             {clientSideErrors.classifications && <p className="text-red-500 text-xs italic mt-1">{clientSideErrors.classifications}</p>}
@@ -521,7 +618,7 @@ const RegistrationForm: React.FC = () => {
                         {data.disability_types.length > 0 && (
                             <div className="mt-6">
                                 <h4 className="text-lg font-bold mb-3 text-gray-900">Causes of Disability (Optional, if disability selected)</h4>
-                                <InputField id="cause_of_disability" label="Cause of Disability" value={data.cause_of_disability} onChange={e => setData('cause_of_disability' as string, e.target.value)} error={errors.cause_of_disability || clientSideErrors.cause_of_disability} placeholder="e.g., Congenital/Inborn, Illness, Injury" />
+                                <InputField id="cause_of_disability" label="Cause of Disability" value={data.cause_of_disability} onChange={e => handleInputChange('cause_of_disability', e.target.value)} error={errors.cause_of_disability || clientSideErrors.cause_of_disability} placeholder="e.g., Congenital/Inborn, Illness, Injury" />
                             </div>
                         )}
                     </div>
@@ -529,8 +626,8 @@ const RegistrationForm: React.FC = () => {
             case 4: // Course & Scholarship
                 return (
                     <div className="grid grid-cols-1 gap-6">
-                        <InputField id="course_qualification" label="Name of Course/Qualification" value={data.course_qualification} onChange={e => setData('course_qualification' as string, e.target.value)} error={errors.course_qualification || clientSideErrors.course_qualification} />
-                        <InputField id="scholarship_package" label="If Scholar, What Type of Scholarship Package (TWSP, PESFA, STEP, others)?" value={data.scholarship_package} onChange={e => setData('scholarship_package' as string, e.target.value)} error={errors.scholarship_package || clientSideErrors.scholarship_package} />
+                        <InputField id="course_qualification" label="Name of Course/Qualification" value={data.course_qualification} onChange={e => handleInputChange('course_qualification', e.target.value)} error={errors.course_qualification || clientSideErrors.course_qualification} />
+                        <InputField id="scholarship_package" label="If Scholar, What Type of Scholarship Package (TWSP, PESFA, STEP, others)?" value={data.scholarship_package} onChange={e => handleInputChange('scholarship_package', e.target.value)} error={errors.scholarship_package || clientSideErrors.scholarship_package} />
                     </div>
                 );
             case 5: // Consent & Uploads
@@ -539,7 +636,7 @@ const RegistrationForm: React.FC = () => {
                         <div>
                             <h4 className="text-lg font-bold mb-3 text-gray-900">Privacy Consent and Disclaimer</h4>
                             <label htmlFor="consent_given" className="flex items-start text-gray-900 p-4 border border-gray-200 rounded-lg hover:bg-gray-100 transition duration-150 ease-in-out cursor-pointer shadow-sm">
-                                <InputField id="consent_given" label="" type="checkbox" isChecked={data.consent_given} onCheckboxChange={e => setData('consent_given' as string, e.target.checked)} className="mt-1" />
+                                <InputField id="consent_given" label="" type="checkbox" isChecked={data.consent_given} onCheckboxChange={e => handleInputChange('consent_given', e.target.checked)} className="mt-1" />
                                 <span className="ml-3 text-sm leading-relaxed">
                                     I hereby attest that I have read and understood the Privacy Notice of TESDA through its website (link here) and agree to the processing of my personal data for purposes indicated therein. I understand that this Learners Profile is for TESDA program monitoring which includes scholarships, employment, survey, and all other related TESDA programs that may be beneficial to my qualifications.
                                 </span>
@@ -619,38 +716,28 @@ const RegistrationForm: React.FC = () => {
         }
     };
 
-    const handleStepClick = async (stepIndex: number) => {
-        // Only allow jumping forward if current step is valid, or always allow jumping backward
-        if (stepIndex < currentStep) {
+  const handleStepClick = useCallback(async (stepIndex: number) => {
+    if (stepIndex < currentStep) {
+        setCurrentStep(stepIndex);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+        const isValid = await validateStep(currentStep);
+        if (isValid) {
             setCurrentStep(stepIndex);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
-            const isValid = await validateStep(currentStep);
-            if (isValid) {
-                setCurrentStep(stepIndex);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            } else {
                 if (Object.keys(clientSideErrors).length > 0) {
-                    alert('Please fill in all required fields for the current section before proceeding.');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Complete Current Section',
+                        text: 'Please fill in all required fields for the current section before proceeding.',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#3B82F6'
+                    });
                 }
             }
         }
-    };
-
-    if (submitted) {
-        return (
-            <div className="max-w-xl mx-auto my-16 p-8 bg-white rounded-xl shadow-2xl text-center">
-                <h2 className="text-2xl font-bold text-htta-blue mb-4">Registration Submitted!</h2>
-                <p className="text-lg text-gray-800 mb-6">
-                    Thank you for registering. Your application has been received and is now <span className="font-semibold text-htta-gold">waiting for approval</span> by the administrator.
-                </p>
-                <p className="text-gray-600 mb-4">
-                    You will receive an email with your login credentials once your registration is approved.
-                </p>
-                <a href="/" className="inline-block px-6 py-3 bg-htta-blue text-white rounded-full font-semibold shadow hover:bg-htta-green transition">Back to Home</a>
-            </div>
-        );
-    }
+}, [currentStep, validateStep]);
 
     return (
         <form onSubmit={handleSubmit} className="space-y-8 bg-dark p-6 sm:p-10 rounded-xl shadow-2xl max-w-4xl mx-auto my-8 font-inter">
@@ -667,7 +754,7 @@ const RegistrationForm: React.FC = () => {
                             >
                                 <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center font-bold text-dark transition-all duration-300 ease-in-out text-sm sm:text-base
                                     ${index === currentStep ? 'bg-htta-blue scale-110 shadow-lg' :
-                                    index < currentStep ? 'bg-htta-green' : 'bg-gray-300'}`}>
+                                        index < currentStep ? 'bg-htta-green' : 'bg-gray-300'}`}>
                                     {index + 1}
                                 </div>
                                 <div className={`text-center text-xs sm:text-sm mt-2 font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-full ${index <= currentStep ? 'text-htta-blue' : 'text-gray-700'}`}>
@@ -693,11 +780,10 @@ const RegistrationForm: React.FC = () => {
                 <div className="bg-red-100 border border-red-400 text-red-700 px-5 py-4 rounded-lg relative mb-6 shadow-md">
                     <strong className="font-bold">Please correct the following errors:</strong>
                     <ul className="mt-3 list-disc list-inside">
-                        {/* Fix: Map errors as unknown then cast to string */}
-                        {Object.values(errors).map((error, index) => (
-                            <li key={index}>{String(error)}</li>
+                        {Object.values(errors).map((error: string, index: number) => (
+                            <li key={index}>{error}</li>
                         ))}
-                        {Object.values(clientSideErrors).map((error, index) => (
+                        {Object.values(clientSideErrors).map((error: string, index: number) => (
                             <li key={index}>{error}</li>
                         ))}
                     </ul>

@@ -20,6 +20,13 @@ class PublicPageController extends Controller
     {
         return Inertia::render('Public/Programs');
     }
+    public function registrationForm()
+{
+    $programs = \App\Models\Program::where('status', 'active')->orderBy('course_name')->get(['id', 'course_name']);
+    return Inertia::render('Public/RegistrationForms', [
+        'programs' => $programs,
+    ]);
+}
 
     public function contact()
     {
@@ -27,6 +34,8 @@ class PublicPageController extends Controller
     }
     public function enrollNow()
     {
-        return Inertia::render('Public/EnrollNow'); // Renders the new EnrollNow.tsx page
-    }
+        $programs = \App\Models\Program::where('status', 'active')->orderBy('course_name')->get(['id', 'course_name']);
+        return Inertia::render('Public/EnrollNow', [
+            'programs' => $programs,
+        ]);    }
 }

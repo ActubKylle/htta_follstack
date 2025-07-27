@@ -3,14 +3,16 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Learner; // Import your Learner model
-use App\Models\User; // Import User model for updating credentials
+use App\Models\Learner;
+use App\Models\User;
+use App\Models\Program; // Import Program model
 use Inertia\Inertia;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash; // For hashing passwords
-use Illuminate\Support\Str; // For generating random strings (passwords)
-use Illuminate\Support\Facades\Mail; // For sending emails
-use App\Mail\EnrollmentAccepted; // Assuming you've created this Mailable
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\EnrollmentAccepted;
+use Illuminate\Support\Facades\Storage;
 
 class EnrollmentController extends Controller
 {
@@ -19,13 +21,13 @@ class EnrollmentController extends Controller
      */
     public function index(Request $request)
     {
-        // Get filter and search parameters from the request
         $search = $request->input('search');
         $status = $request->input('status');
 
-        $query = Learner::with(['address', 'user', 'courseEnrollments']);
+        // Eager load necessary relationships
+        // Load courseEnrollments.program to get program details
+        $query = Learner::with(['address', 'user', 'courseEnrollments.program', 'registrationSignature']);
 
-        // Apply search filter
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', '%' . $search . '%')
@@ -36,15 +38,24 @@ class EnrollmentController extends Controller
             });
         }
 
-        // Apply status filter
         if ($status && in_array($status, ['pending', 'accepted', 'rejected'])) {
             $query->where('enrollment_status', $status);
         }
 
         $recentLearners = $query->orderBy('created_at', 'desc')
-                                ->paginate(10) // Paginate with 10 items per page
+                                ->paginate(10)
                                 ->through(function ($learner) {
-                                    $courseQualification = $learner->courseEnrollments->first() ? $learner->courseEnrollments->first()->course_qualification : 'N/A';
+                                    // Get program name from the loaded program relationship
+                                    $programName = $learner->courseEnrollments->first() && $learner->courseEnrollments->first()->program
+                                        ? $learner->courseEnrollments->first()->program->course_name // Use program->course_name
+                                        : 'N/A';
+
+                                    // Determine the picture image URL
+                                    $pictureImageUrl = null;
+                                    if ($learner->registrationSignature && $learner->registrationSignature->picture_image_path) {
+                                        $dbPath = $learner->registrationSignature->picture_image_path;
+                                        $pictureImageUrl = Storage::url($dbPath);
+                                    }
 
                                     return [
                                         'learner_id' => $learner->learner_id,
@@ -52,11 +63,12 @@ class EnrollmentController extends Controller
                                         'last_name' => $learner->last_name,
                                         'email' => $learner->user->email ?? 'N/A',
                                         'contact_no' => $learner->address->contact_no ?? 'N/A',
-                                        'course_qualification' => $courseQualification,
+                                        'program_name' => $programName, // Changed from course_qualification to program_name
                                         'created_at' => $learner->created_at,
                                         'enrollment_status' => $learner->enrollment_status,
                                         'address' => $learner->address,
                                         'user' => $learner->user,
+                                        'picture_image_url' => $pictureImageUrl,
                                     ];
                                 });
 
@@ -72,24 +84,34 @@ class EnrollmentController extends Controller
     /**
      * Display the specified learner enrollment.
      */
-    public function show(Learner $learner) // Using Route Model Binding for Learner
+    public function show(Learner $learner)
     {
-        // Load all necessary relationships for detailed view
         $learner->load([
             'user',
             'address',
             'educationalAttainment',
-            'classifications', // If you have a relationship to get classification type names
+            'classifications',
             'disabilities.disabilityType',
-            'courseEnrollments',
+            'courseEnrollments.program', // Eager load the program relationship here
             'privacyConsent',
             'registrationSignature'
         ]);
+
+        // Manually add the public URL for picture and thumbmark images
+        if ($learner->registrationSignature) {
+            if ($learner->registrationSignature->picture_image_path) {
+                $learner->registrationSignature->picture_image_path = Storage::url($learner->registrationSignature->picture_image_path);
+            }
+            if ($learner->registrationSignature->thumbmark_image_path) {
+                $learner->registrationSignature->thumbmark_image_path = Storage::url($learner->registrationSignature->thumbmark_image_path);
+            }
+        }
 
         return Inertia::render('Admin/EnrollmentDetails', [
             'learner' => $learner,
         ]);
     }
+
 
     /**
      * Accept a learner's enrollment.
@@ -152,4 +174,96 @@ class EnrollmentController extends Controller
 
         return redirect()->route('admin.enrollments')->with('success', 'Learner enrollment rejected.');
     }
+
+
+
+  public function studentList(Request $request)
+{
+    $query = Learner::with(['address', 'user', 'courseEnrollments.program', 'registrationSignature'])
+                    ->where('enrollment_status', 'accepted');
+
+    // --- Apply Filters ---
+    $search = $request->input('search');
+    $programFilter = $request->input('program');
+    // $scholarshipFilter = $request->input('scholarship');
+
+    if ($search) {
+        $query->where(function ($q) use ($search) {
+            $q->where('first_name', 'like', '%' . $search . '%')
+              ->orWhere('last_name', 'like', '%' . $search . '%')
+              ->orWhereHas('user', function ($uq) use ($search) {
+                  $uq->where('email', 'like', '%' . $search . '%');
+              });
+        });
+    }
+
+    if ($programFilter) {
+        $query->whereHas('courseEnrollments.program', function ($q) use ($programFilter) {
+            $q->where('course_name', $programFilter);
+        });
+    }
+
+    // if ($scholarshipFilter) {
+    //     // This assumes you have a 'scholarships' relationship on the Learner model
+    //     $query->whereHas('scholarships', function ($q) use ($scholarshipFilter) {
+    //         $q->where('scholarship_name', $scholarshipFilter);
+    //     });
+    // }
+
+
+$students = $query->orderBy('last_name', 'asc')
+    ->paginate(15)
+    ->through(function ($learner) {
+        // This closure now formats each student record consistently
+        return [
+            'learner_id' => $learner->learner_id,
+            'first_name' => $learner->first_name,
+            'last_name' => $learner->last_name,
+            'email' => $learner->user->email ?? 'N/A',
+            'picture_image_url' => $learner->registrationSignature ? Storage::url($learner->registrationSignature->picture_image_path) : null,
+            
+            // This line specifically fixes the missing program name
+            'program_name' => $learner->courseEnrollments->first() && $learner->courseEnrollments->first()->program
+                ? $learner->courseEnrollments->first()->program->course_name
+                : 'N/A',
+
+            // This line specifically fixes the missing contact number
+            'contact_no' => $learner->address->contact_no ?? 'N/A',
+            
+            // Add any other fields your frontend needs
+            'enrollment_status' => 'Enrolled', // Or use $learner->enrollment_status if you change the query
+            'attendance_summary' => '98%', // Placeholder
+        ];
+    });
+
+    // --- START: NEW LOGIC TO PASS DATA TO THE VIEW ---
+
+    // Fetch all unique program names for the filter dropdown
+    $programs = Program::orderBy('course_name')->pluck('course_name')->unique()->all();
+    
+    // Fetch all unique scholarship names for the filter dropdown
+    // This assumes a 'Scholarship' model and a 'scholarship_name' column
+    // $scholarships = Scholarship::orderBy('scholarship_name')->pluck('scholarship_name')->unique()->all();
+
+    // // Calculate stats
+    // $stats = [
+    //     'activeScholars' => Learner::where('enrollment_status', 'accepted')->whereHas('scholarships')->count(),
+    //     'forAssessment' => Learner::where('enrollment_status', 'accepted')->whereHas('assessmentProfiles', function($q){
+    //         $q->where('status', 'Pending');
+    //     })->count(),
+    // ];
+
+
+    // Modify the return statement
+    return Inertia::render('Admin/StudentList', [
+        'students' => $students,
+        // 'stats' => $stats, // Pass the new stats
+        'filters' => $request->only(['search', 'program', 'scholarship']),
+        'programs' => Program::orderBy('course_name')->pluck('course_name')->unique()->all(),
+        // 'scholarships' => $scholarships, // Pass the scholarship list
+    ]);
+    // --- END: NEW LOGIC ---
+}
+
+
 }

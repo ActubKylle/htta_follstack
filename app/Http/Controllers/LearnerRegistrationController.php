@@ -6,12 +6,14 @@ use Illuminate\Http\Request;
 use App\Models\Learner;
 use App\Models\User; // Still needed for type hinting, but not for creation here
 use App\Models\Classification;
+use App\Models\Program;
 use App\Models\DisabilityType;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash; // Still needed for hashing if used elsewhere, but not for new user here
 use Illuminate\Support\Str; // Still needed for string functions if used elsewhere, but not for new password here
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class LearnerRegistrationController extends Controller
 {
@@ -72,7 +74,8 @@ class LearnerRegistrationController extends Controller
                 'disability_types.*' => 'integer|exists:disability_types,id',
                 'cause_of_disability' => 'nullable|string|max:50|required_if:disability_types,true',
 
-                'course_qualification' => 'required|string|max:255',
+                 // Program Enrollment: Changed from course_qualification to program_id
+                'program_id' => 'required|integer|exists:programs,id', // Validate against 'programs' table and its 'id'
                 'scholarship_package' => 'nullable|string|max:255',
 
                 'consent_given' => 'required|boolean|accepted', // Must be true
@@ -82,16 +85,17 @@ class LearnerRegistrationController extends Controller
             ]);
 
             // --- 2. Handle File Uploads ---
-            $thumbmarkImagePath = null;
+         $thumbmarkImagePath = null;
             if ($request->hasFile('thumbmark_image')) {
-                $thumbmarkImagePath = $request->file('thumbmark_image')->store('public/thumbmarks');
-                $thumbmarkImagePath = str_replace('public/', 'storage/', $thumbmarkImagePath);
+                // Store in storage/app/public/thumbmarks and return 'thumbmarks/filename.ext'
+                $thumbmarkImagePath = $request->file('thumbmark_image')->store('thumbmarks', 'public');
             }
 
             $pictureImagePath = null;
             if ($request->hasFile('picture_image')) {
-                $pictureImagePath = $request->file('picture_image')->store('public/pictures');
-                $pictureImagePath = str_replace('public/', 'storage/', $pictureImagePath);
+                // Store in storage/app/public/pictures and return 'pictures/filename.ext'
+                $pictureImagePath = $request->file('picture_image')->store('pictures', 'public');
+                Log::info('Raw path from store(): ' . $pictureImagePath);
             }
 
             // --- 3. Removed: Generate Password & Create User (This will now happen on admin approval) ---
@@ -104,9 +108,17 @@ class LearnerRegistrationController extends Controller
             //     'email_verified_at' => null,
             // ]);
 
+        $user = User::create([
+                'name' => $validatedData['first_name'] . ' ' . $validatedData['last_name'],
+                'email' => $validatedData['email'],
+                'password' => Hash::make(Str::random(12)), // random password, will be reset on approval
+                'role' => 'learner',
+                'email_verified_at' => null,
+            ]);
+      
             // --- 4. Create Learner Record (user_id will be null initially) ---
             $learner = Learner::create([
-                'user_id' => null, // Set user_id to null initially
+                'user_id' => $user->id, // Set user_id to null initially
                 'entry_date' => now()->toDateString(),
                 'last_name' => $validatedData['last_name'],
                 'first_name' => $validatedData['first_name'],
@@ -127,6 +139,9 @@ class LearnerRegistrationController extends Controller
                 't2mis_auto_generated' => true,
                 'enrollment_status' => 'pending', // Explicitly set to pending
             ]);
+// --- NEW: Create User and link to Learner ---
+
+
 
             // --- 5. Create Related Records ---
             $learner->address()->create([
@@ -193,7 +208,7 @@ class LearnerRegistrationController extends Controller
 
             // Create Course Enrollment
             $learner->courseEnrollments()->create([
-                'course_qualification' => $validatedData['course_qualification'],
+                'program_id' => $validatedData['program_id'], // Use program_id, linked to the programs table
                 'scholarship_package' => $validatedData['scholarship_package'] ?? null,
             ]);
 
@@ -207,8 +222,9 @@ class LearnerRegistrationController extends Controller
             $learner->registrationSignature()->create([
                 'applicant_signature_printed_name' => $validatedData['first_name'] . ' ' . $validatedData['last_name'],
                 'date_accomplished' => now()->toDateString(),
-                'thumbmark_image_path' => $thumbmarkImagePath,
-                'picture_image_path' => $pictureImagePath,
+                'thumbmark_image_path' => $thumbmarkImagePath, // This will now be 'public/...'
+                'picture_image_path' => $pictureImagePath,     // This will now be 'public/...'
+
             ]);
 
             DB::commit();

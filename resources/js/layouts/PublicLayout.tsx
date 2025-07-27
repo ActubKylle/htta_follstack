@@ -58,11 +58,8 @@ const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
                             <div className="relative">
                                 <div className="w-16 h-16 bg-gradient-to-br from-white via-gray-50 to-white rounded-full flex items-center justify-center shadow-xl shadow-black/20 group-hover:shadow-2xl group-hover:shadow-yellow-400/30 transition-all duration-500 group-hover:scale-110">
                                     {/* FIXED: Corrected image source */}
-                                    <img 
-                                        src="/images/htta_logo.png" 
-                                        alt="HTTA Logo" 
-                                        className="w-12 h-12 object-contain group-hover:scale-110 transition-transform duration-300"
-                                    />
+                                   <img src="/logo.jpg" alt="HTTA Logo" />
+
                                 </div>
                                 <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-full opacity-0 group-hover:opacity-30 transition-opacity duration-500 blur-lg"></div>
                                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-pulse"></div>
@@ -172,7 +169,7 @@ const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
                             <div className="flex items-center justify-center md:justify-start space-x-3 mb-6">
                                 <div className="w-12 h-12 bg-gradient-to-br from-white via-gray-50 to-white rounded-full flex items-center justify-center shadow-xl">
                                     {/* FIXED: Corrected image source */}
-                                    <img src="/images/htta_logo.png" alt="HTTA Logo" className="w-10 h-10 object-contain" />
+<img src="/logo.jpg" alt="HTTA Logo" />
                                 </div>
                                 <div>
                                     <span className="text-xl font-black">HTTA, Inc.</span>

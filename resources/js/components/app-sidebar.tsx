@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type PageProps } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, UserCheck } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, UserCheck, Users } from 'lucide-react';
 
 import AppLogo from './app-logo';
 
@@ -43,20 +43,30 @@ export function AppSidebar() {
             href: '/admin/enrollments',
             icon: UserCheck,
         });
+        mainNavItems.push({
+        title: 'Student List',
+        href: '/admin/students', // The route you just created
+        icon: Users, // A fitting icon for a list of users
+    });
+        mainNavItems.push({
+            title: 'Manage Programs', // Title for the sidebar link
+            href: '/admin/programs', // The route for managing programs
+            icon: BookOpen, // Using BookOpen as an appropriate icon for programs/courses
+        });
         
     }
 
     const footerNavItems: NavItem[] = [
-        {
-            title: 'Repository',
-            href: 'https://github.com/laravel/react-starter-kit',
-            icon: Folder,
-        },
-        {
-            title: 'Documentation',
-            href: 'https://laravel.com/docs/starter-kits#react',
-            icon: BookOpen,
-        },
+        // {
+        //     title: 'Repository',
+        //     href: 'https://github.com/laravel/react-starter-kit',
+        //     icon: Folder,
+        // },
+        // {
+        //     title: 'Documentation',
+        //     href: 'https://laravel.com/docs/starter-kits#react',
+        //     icon: BookOpen,
+        // },
     ];
 
     return (

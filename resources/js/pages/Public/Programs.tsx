@@ -277,23 +277,23 @@ const Programs: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                     <div className="text-center p-6 bg-white bg-opacity-10 rounded-xl backdrop-blur-sm">
                         <div className="text-5xl mb-4">💰</div>
-                        <h3 className="text-xl font-bold mb-3">No Tuition Fees</h3>
-                        <p className="opacity-90 text-sm">Complete training without any financial burden</p>
+                        <h3 className="text-xl font-bold mb-3 text-gray-900">No Tuition Fees</h3>
+                        <p className="opacity-90 text-sm text-gray-900">Complete training without any financial burden</p>
                     </div>
                     <div className="text-center p-6 bg-white bg-opacity-10 rounded-xl backdrop-blur-sm">
                         <div className="text-5xl mb-4">📚</div>
-                        <h3 className="text-xl font-bold mb-3">Free Materials</h3>
-                        <p className="opacity-90 text-sm">All learning materials and resources provided</p>
+                        <h3 className="text-xl font-bold mb-3 text-gray-900">Free Materials</h3>
+                        <p className="opacity-90 text-sm text-gray-900">All learning materials and resources provided</p>
                     </div>
                     <div className="text-center p-6 bg-white bg-opacity-10 rounded-xl backdrop-blur-sm">
                         <div className="text-5xl mb-4">🏆</div>
-                        <h3 className="text-xl font-bold mb-3">Official Certification</h3>
-                        <p className="opacity-90 text-sm">Receive recognized TESDA NC II certificates</p>
+                        <h3 className="text-xl font-bold mb-3 text-gray-900">Official Certification</h3>
+                        <p className="opacity-90 text-sm text-gray-900">Receive recognized TESDA NC II certificates</p>
                     </div>
                     <div className="text-center p-6 bg-white bg-opacity-10 rounded-xl backdrop-blur-sm">
                         <div className="text-5xl mb-4">🎯</div>
-                        <h3 className="text-xl font-bold mb-3">Job Placement</h3>
-                        <p className="opacity-90 text-sm">Career guidance and job placement assistance</p>
+                        <h3 className="text-xl font-bold mb-3 text-gray-900">Job Placement</h3>
+                        <p className="opacity-90 text-sm text-gray-900">Career guidance and job placement assistance</p>
                     </div>
                 </div>
             </section>

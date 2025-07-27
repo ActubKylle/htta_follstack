@@ -4,6 +4,7 @@ import laravel from 'laravel-vite-plugin';
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 
+
 export default defineConfig({
     plugins: [
         laravel({
@@ -17,6 +18,7 @@ export default defineConfig({
         react(), // Essential for React support
         tailwindcss(), // Essential for Tailwind CSS JIT compilation
     ],
+    
     esbuild: {
         jsx: 'automatic', // Enables new JSX transform
     },

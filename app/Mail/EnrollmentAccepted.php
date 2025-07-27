@@ -35,7 +35,7 @@ class EnrollmentAccepted extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Enrollment with [Your School Name] Has Been Accepted!',
+            subject: 'Your Enrollment with Highland Technical Training Academy inc Has Been Accepted!',
         );
     }
 

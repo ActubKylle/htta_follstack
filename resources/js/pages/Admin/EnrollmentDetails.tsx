@@ -1,7 +1,7 @@
 import React from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type PageProps } from '@/types';
-import { Head } from '@inertiajs/react';
+import { Head,router  } from '@inertiajs/react';
 
 // Define types for Learner and its relationships for the details page
 interface DetailedLearnerData {
@@ -99,6 +99,7 @@ interface DetailedLearnerData {
 
 interface EnrollmentDetailsProps extends PageProps {
     learner: DetailedLearnerData;
+     from: 'enrollments' | 'students'; 
 }
 
 export default function EnrollmentDetails({ learner }: EnrollmentDetailsProps) {
@@ -148,8 +149,8 @@ export default function EnrollmentDetails({ learner }: EnrollmentDetailsProps) {
                             <div className="relative">
                                 <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-full flex items-center justify-center shadow-2xl border-4 border-white/20">
                                     {learner.registration_signature?.picture_image_path ? (
-                                        <img 
-                                            src={`/${learner.registration_signature.picture_image_path}`} 
+                                       <img 
+                                            src={`${learner.registration_signature.picture_image_path}`} 
                                             alt="Profile" 
                                             className="w-full h-full rounded-full object-cover"
                                         />
@@ -518,7 +519,9 @@ export default function EnrollmentDetails({ learner }: EnrollmentDetailsProps) {
                                             <h5 className="text-sm font-medium text-gray-600 mb-3">Thumbmark</h5>
                                             <div className="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
                                                 {learner.registration_signature?.thumbmark_image_path ? (
+                                                    
                                                     <img 
+                                                    
                                                         src={`/${learner.registration_signature.thumbmark_image_path}`} 
                                                         alt="Thumbmark" 
                                                         className="w-24 h-24 mx-auto object-contain rounded-lg shadow-sm"
@@ -539,7 +542,7 @@ export default function EnrollmentDetails({ learner }: EnrollmentDetailsProps) {
                                             <div className="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
                                                 {learner.registration_signature?.picture_image_path ? (
                                                     <img 
-                                                        src={`/${learner.registration_signature.picture_image_path}`} 
+                                                       src={learner.registration_signature.picture_image_path} // Use directly the full URL
                                                         alt="Picture" 
                                                         className="w-24 h-24 mx-auto object-cover rounded-lg shadow-sm"
                                                     />
@@ -572,7 +575,10 @@ export default function EnrollmentDetails({ learner }: EnrollmentDetailsProps) {
                             </svg>
                             Edit Details
                         </button>
-                        <button className="px-6 py-3 bg-gradient-to-r from-gray-600 to-slate-600 text-white rounded-lg hover:from-gray-700 hover:to-slate-700 transition-all duration-300 shadow-lg hover:shadow-xl font-semibold">
+                        <button 
+                            onClick={() => router.visit(route('admin.enrollments'))}
+                            className="px-6 py-3 bg-gradient-to-r from-gray-600 to-slate-600 text-white rounded-lg hover:from-gray-700 hover:to-slate-700 transition-all duration-300 shadow-lg hover:shadow-xl font-semibold"
+                        >
                             <svg className="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
                             </svg>
