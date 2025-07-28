@@ -45,12 +45,10 @@ class EnrollmentController extends Controller
         $recentLearners = $query->orderBy('created_at', 'desc')
                                 ->paginate(10)
                                 ->through(function ($learner) {
-                                    // Get program name from the loaded program relationship
                                     $programName = $learner->courseEnrollments->first() && $learner->courseEnrollments->first()->program
-                                        ? $learner->courseEnrollments->first()->program->course_name // Use program->course_name
+                                        ? $learner->courseEnrollments->first()->program->course_name 
                                         : 'N/A';
 
-                                    // Determine the picture image URL
                                     $pictureImageUrl = null;
                                     if ($learner->registrationSignature && $learner->registrationSignature->picture_image_path) {
                                         $dbPath = $learner->registrationSignature->picture_image_path;
@@ -81,9 +79,7 @@ class EnrollmentController extends Controller
         ]);
     }
 
-    /**
-     * Display the specified learner enrollment.
-     */
+   
     public function show(Learner $learner)
     {
         $learner->load([
@@ -92,12 +88,12 @@ class EnrollmentController extends Controller
             'educationalAttainment',
             'classifications',
             'disabilities.disabilityType',
-            'courseEnrollments.program', // Eager load the program relationship here
+            'courseEnrollments.program', 
             'privacyConsent',
             'registrationSignature'
         ]);
 
-        // Manually add the public URL for picture and thumbmark images
+       
         if ($learner->registrationSignature) {
             if ($learner->registrationSignature->picture_image_path) {
                 $learner->registrationSignature->picture_image_path = Storage::url($learner->registrationSignature->picture_image_path);

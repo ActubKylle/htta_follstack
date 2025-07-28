@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Mail, Phone, Maximize } from 'lucide-react'; // Import Maximize icon for preview
+import { Mail, Phone, Maximize } from 'lucide-react';
 
-// Assuming you have a simple Modal component for image preview
-import { MyImagePreviewModal } from './MyImagePreviewModal'; // Create this new modal component
+import { MyImagePreviewModal } from './MyImagePreviewModal'; 
 
-export function LearnerInfo({ learner }: { learner: LearnerData }) { // Use LearnerData interface
+export function LearnerInfo({ learner }: { learner: LearnerData }) { 
     const [isImageModalOpen, setImageModalOpen] = useState(false);
 
     return (
@@ -13,7 +12,7 @@ export function LearnerInfo({ learner }: { learner: LearnerData }) { // Use Lear
                 {learner.picture_image_url ? (
                     <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200 shadow-sm flex-shrink-0 cursor-pointer group">
                         <img
-                        src={learner.picture_image_url} // <--- THIS IS KEY. Must be directly used.
+                        src={learner.picture_image_url} 
                             alt={`${learner.first_name} ${learner.last_name}'s 1x1`}
                             className="w-full h-full object-cover"
                             onClick={() => setImageModalOpen(true)}

@@ -22,6 +22,11 @@ import {
     AlertCircle,
     RefreshCw
 } from 'lucide-react';
+import { 
+    PageLoadingSkeleton, 
+    TableLoadingSkeleton,
+    useLoadingStates 
+} from '@/components/Loading';
 import toast, { Toaster } from 'react-hot-toast';
 
 // Interfaces remain unchanged
@@ -68,6 +73,17 @@ export default function ProgramsIndex() {
     const [search, setSearch] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status || '');
     const [activeActionMenu, setActiveActionMenu] = useState<number | null>(null);
+
+
+        // Loading states for different scenarios
+    const { loadingStates, setLoading } = useLoadingStates({
+        initialLoad: true, // For the initial page skeleton
+        isFiltering: false, // For filtering/pagination actions
+        isRefreshing: false, // For the manual refresh button
+    });
+
+
+
     const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
     const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -76,22 +92,38 @@ export default function ProgramsIndex() {
     const inactivePrograms = programs.data.filter(p => p.status === 'inactive').length;
     const totalHours = programs.data.reduce((sum, p) => sum + p.duration_hours, 0);
 
+     // --- EFFECTS ---
+    useEffect(() => {
+        // Hide initial page skeleton after a short delay
+        const timer = setTimeout(() => setLoading('initialLoad', false), 500);
+        return () => clearTimeout(timer);
+    }, []);
+
     // --- LOGIC HOOKS ---
     useEffect(() => {
         if (flash && flash.success) toast.success(flash.success);
         if (flash && flash.error) toast.error(flash.error);
     }, [flash]);
 
-    useEffect(() => {
+     useEffect(() => {
+        // Don't run the filter on the initial load
+        if (loadingStates.initialLoad) return;
+
         const handler = setTimeout(() => {
             router.get(
                 route('admin.programs.manage_index'),
                 { search, status: statusFilter },
-                { preserveState: true, preserveScroll: true, replace: true }
+                { 
+                    preserveState: true, 
+                    preserveScroll: true, 
+                    replace: true,
+                    onStart: () => setLoading('isFiltering', true),
+                    onFinish: () => setLoading('isFiltering', false),
+                }
             );
         }, 300);
         return () => clearTimeout(handler);
-    }, [search, statusFilter]);
+    }, [search, statusFilter, loadingStates.initialLoad]);
     
     useEffect(() => {
         const closeMenu = () => setActiveActionMenu(null);
@@ -122,7 +154,16 @@ export default function ProgramsIndex() {
         setSearch('');
         setStatusFilter('');
     };
-
+    
+ // 1. Render Page Skeleton on initial load
+    if (loadingStates.initialLoad) {
+        return (
+            <AppLayout breadcrumbs={breadcrumbs}>
+                <Head title="Manage Programs" />
+                <PageLoadingSkeleton />
+            </AppLayout>
+        );
+    }
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Manage Programs" />

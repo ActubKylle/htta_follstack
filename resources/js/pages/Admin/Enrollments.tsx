@@ -2,60 +2,24 @@ import React, { useReducer, useEffect } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type PageProps } from '@/types';
 import { Head, Link, usePage, router } from '@inertiajs/react';
-// Importing icons from 'lucide-react'
-import { Search, Filter, Users, CheckCircle, XCircle, Clock, Eye, User, Mail, Phone, MapPin, Calendar, BookOpen, ChevronLeft, ChevronRight, MoreHorizontal, MoreVertical } from 'lucide-react';
+import { Search, Filter, Users, CheckCircle, XCircle, Clock, Eye, User, Mail, Phone, MapPin, Calendar, BookOpen, ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
+
+// Import your loading components
+import { 
+    LoadingButton, 
+    LoadingOverlay, 
+    PageLoadingSkeleton, 
+    TableLoadingSkeleton,
+    useLoadingStates 
+} from '@/components/Loading';
+
 import { StatusBadge } from '@/components/Enrollments/StatusBadge';
 import { LearnerInfo } from '@/components/Enrollments/LearnerInfo';
 import { ActionButtons } from '@/components/Enrollments/ActionButtons';
-import { MyModal } from '@/components/Enrollments/MyModal'; // Import your custom modal
+import { MyModal } from '@/components/Enrollments/MyModal';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
-// --- State and Reducer Definitions ---
-
-type State = {
-    showConfirmation: boolean;
-    selectedLearner: LearnerData | null;
-    actionType: 'accept' | 'reject' | null;
-    isLoading: boolean;
-    toasts: ToastNotification[];
-};
-
-type Action =
-    | { type: 'SHOW_CONFIRMATION', learner: LearnerData, actionType: 'accept' | 'reject' }
-    | { type: 'HIDE_CONFIRMATION' }
-    | { type: 'SET_LOADING', isLoading: boolean }
-    | { type: 'ADD_TOAST', toast: Omit<ToastNotification, 'id'> }
-    | { type: 'REMOVE_TOAST', id: string };
-
-const initialState: State = {
-    showConfirmation: false,
-    selectedLearner: null,
-    actionType: null,
-    isLoading: false,
-    toasts: [],
-};
-
-function reducer(state: State, action: Action): State {
-    switch (action.type) {
-        case 'SHOW_CONFIRMATION':
-            return { ...state, showConfirmation: true, selectedLearner: action.learner, actionType: action.actionType };
-        case 'HIDE_CONFIRMATION':
-            // Ensure isLoading is always reset when hiding confirmation
-            return { ...state, showConfirmation: false, selectedLearner: null, actionType: null, isLoading: false };
-        case 'SET_LOADING':
-            return { ...state, isLoading: action.isLoading };
-        case 'ADD_TOAST':
-            const id = Date.now().toString();
-            return { ...state, toasts: [...state.toasts, { ...action.toast, id }] };
-        case 'REMOVE_TOAST':
-            return { ...state, toasts: state.toasts.filter(t => t.id !== action.id) };
-        default:
-            return state;
-    }
-}
-
-// --- Interfaces ---
-
+// --- Interfaces (same as before) ---
 interface ToastNotification {
     id: string;
     type: 'success' | 'error';
@@ -70,7 +34,6 @@ interface LearnerData {
     last_name: string;
     email: string;
     contact_no: string;
-    // course_qualification: string;
     program_name: string;
     created_at: string;
     enrollment_status: 'pending' | 'accepted' | 'rejected';
@@ -87,11 +50,7 @@ interface LearnerData {
 interface AdminEnrollmentsProps extends PageProps {
     recentLearners: {
         data: LearnerData[];
-        links: {
-            url: string | null;
-            label: string;
-            active: boolean;
-        }[];
+        links: Array<{ url: string | null; label: string; active: boolean; }>;
         current_page: number;
         last_page: number;
         from: number | null;
@@ -105,8 +64,44 @@ interface AdminEnrollmentsProps extends PageProps {
     };
 }
 
-// --- Breadcrumbs ---
+// --- Updated State and Reducer ---
+type State = {
+    showConfirmation: boolean;
+    selectedLearner: LearnerData | null;
+    actionType: 'accept' | 'reject' | null;
+    toasts: ToastNotification[];
+};
 
+type Action =
+    | { type: 'SHOW_CONFIRMATION', learner: LearnerData, actionType: 'accept' | 'reject' }
+    | { type: 'HIDE_CONFIRMATION' }
+    | { type: 'ADD_TOAST', toast: Omit<ToastNotification, 'id'> }
+    | { type: 'REMOVE_TOAST', id: string };
+
+const initialState: State = {
+    showConfirmation: false,
+    selectedLearner: null,
+    actionType: null,
+    toasts: [],
+};
+
+function reducer(state: State, action: Action): State {
+    switch (action.type) {
+        case 'SHOW_CONFIRMATION':
+            return { ...state, showConfirmation: true, selectedLearner: action.learner, actionType: action.actionType };
+        case 'HIDE_CONFIRMATION':
+            return { ...state, showConfirmation: false, selectedLearner: null, actionType: null };
+        case 'ADD_TOAST':
+            const id = Date.now().toString();
+            return { ...state, toasts: [...state.toasts, { ...action.toast, id }] };
+        case 'REMOVE_TOAST':
+            return { ...state, toasts: state.toasts.filter(t => t.id !== action.id) };
+        default:
+            return state;
+    }
+}
+
+// --- Breadcrumbs ---
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Enrollments',
@@ -114,17 +109,21 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-// --- useEnrollmentActions Hook ---
-
-function useEnrollmentActions(dispatch: React.Dispatch<Action>) {
+// --- Enhanced useEnrollmentActions Hook ---
+function useEnrollmentActions(
+    dispatch: React.Dispatch<Action>, 
+    setLoading: (key: string, value: boolean) => void
+) {
     const handleAction = (learner: LearnerData, actionType: 'accept' | 'reject') => {
         dispatch({ type: 'SHOW_CONFIRMATION', learner, actionType });
     };
 
     const confirmAction = async (learner: LearnerData | null, actionType: 'accept' | 'reject' | null) => {
         if (!learner || !actionType) return;
-        dispatch({ type: 'SET_LOADING', isLoading: true });
+        
+        setLoading('actionProcess', true);
         const routeName = actionType === 'accept' ? 'admin.enrollment.accept' : 'admin.enrollment.reject';
+        
         try {
             await router.post(route(routeName, learner.learner_id), {}, {
                 onSuccess: () => {
@@ -139,7 +138,7 @@ function useEnrollmentActions(dispatch: React.Dispatch<Action>) {
                     });
                     dispatch({ type: 'HIDE_CONFIRMATION' });
                 },
-                onError: (errors) => { // Added errors parameter for better debugging
+                onError: (errors) => {
                     console.error('Inertia.js POST error:', errors);
                     dispatch({
                         type: 'ADD_TOAST',
@@ -150,12 +149,9 @@ function useEnrollmentActions(dispatch: React.Dispatch<Action>) {
                             duration: 6000
                         }
                     });
-                    dispatch({ type: 'HIDE_CONFIRMATION' });
                 },
                 onFinish: () => {
-                    // This callback runs whether success or error, and ensures loading state is clean.
-                    // HIDE_CONFIRMATION already sets isLoading: false, so this might be redundant but safe.
-                    // dispatch({ type: 'SET_LOADING', isLoading: false });
+                    setLoading('actionProcess', false);
                 }
             });
         } catch (e) {
@@ -169,12 +165,11 @@ function useEnrollmentActions(dispatch: React.Dispatch<Action>) {
                     duration: 6000
                 }
             });
-            dispatch({ type: 'HIDE_CONFIRMATION' });
+            setLoading('actionProcess', false);
         }
     };
 
     const cancelAction = () => {
-        console.log('[useEnrollmentActions] cancelAction called: Hiding confirmation.');
         dispatch({ type: 'HIDE_CONFIRMATION' });
     };
 
@@ -186,66 +181,86 @@ function useEnrollmentActions(dispatch: React.Dispatch<Action>) {
 }
 
 // --- Main Enrollments Component ---
-
 export default function Enrollments() {
     const { recentLearners, filters } = usePage<AdminEnrollmentsProps>().props;
 
-    // useReducer for all UI state
-    const [state, dispatch] = useReducer(reducer, initialState);
-    const { handleAction, confirmAction, cancelAction, removeToast } = useEnrollmentActions(dispatch);
+    // Use the custom loading states hook
+    const { loadingStates, setLoading, isAnyLoading } = useLoadingStates({
+        pageLoad: true // Start with page loading
+    });
 
-    // Filter states (keep as useState for form fields)
+    // useReducer for UI state
+    const [state, dispatch] = useReducer(reducer, initialState);
+    const { handleAction, confirmAction, cancelAction, removeToast } = useEnrollmentActions(dispatch, setLoading);
+
+    // Filter states
     const [search, setSearch] = React.useState(filters.search || '');
     const [statusFilter, setStatusFilter] = React.useState(filters.status || '');
-    // No need for currentPage state if applyFilters always resets to page 1 for search/filter changes.
-    // If you plan to allow changing page independently without resetting filters, then keep it.
-    // const [currentPage, setCurrentPage] = React.useState(recentLearners.current_page);
 
-    // Effect to update internal state when Inertia reloads with new props (important for filters)
+    // Initial page load effect
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setLoading('pageLoad', false);
+        }, 1000); // Simulate loading time
+
+        return () => clearTimeout(timer);
+    }, [setLoading]);
+
+    // Update filter states when props change
     useEffect(() => {
         setSearch(filters.search || '');
         setStatusFilter(filters.status || '');
-        // setCurrentPage(recentLearners.current_page); // Only if needed as mentioned above
     }, [filters.search, filters.status, recentLearners.current_page]);
 
-    // Function to apply filters and search
+    // Apply filters with loading state
     const applyFilters = (page: number = 1) => {
+        setLoading('filterApply', true);
+        
         router.get(
             route('admin.enrollments'),
             { search, status: statusFilter, page },
             {
                 preserveState: true,
                 preserveScroll: true,
+                onFinish: () => {
+                    setLoading('filterApply', false);
+                }
             }
         );
     };
 
-    // Handle search input change with debounce
+    // Debounced search effect
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            if (search !== (filters.search || '') || statusFilter !== (filters.status || '')) {
+                applyFilters(1);
+            }
+        }, 300);
+
+        return () => clearTimeout(handler);
+    }, [search, statusFilter]);
+
+    // Handle search input
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearch(e.target.value);
     };
 
-    // Use useEffect to apply filters when search or statusFilter changes (with debounce for search)
-    useEffect(() => {
-        const handler = setTimeout(() => {
-            applyFilters(1); // Reset to page 1 on search/filter change
-        }, 300); // 300ms debounce
+    // Clear filters
+    const clearFilters = () => {
+        setSearch('');
+        setStatusFilter('');
+        applyFilters(1);
+    };
 
-        return () => {
-            clearTimeout(handler);
-        };
-    }, [search, statusFilter]);
-
-    // Get enrollment stats (simplified for current page's data for demonstration)
+    // Get enrollment stats
     const getEnrollmentStats = () => {
         const stats = {
-            total: recentLearners.total, // Use total from paginator
+            total: recentLearners.total,
             pending: 0,
             accepted: 0,
             rejected: 0
         };
 
-        // Calculate counts based on current page data
         recentLearners.data.forEach(learner => {
             const status = learner.enrollment_status ?? 'pending';
             if (status === 'pending') stats.pending++;
@@ -257,6 +272,26 @@ export default function Enrollments() {
     };
 
     const stats = getEnrollmentStats();
+
+    // Show page loading skeleton
+    if (loadingStates.pageLoad) {
+        return (
+            <AppLayout breadcrumbs={breadcrumbs}>
+                <Head title="Enrollments" />
+                <div className="min-h-screen bg-gray-50">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        <PageLoadingSkeleton 
+                            showHeader={true}
+                            showStats={true}
+                            showFilters={true}
+                            showTable={true}
+                        />
+                    </div>
+                </div>
+            </AppLayout>
+        );
+    }
+
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
