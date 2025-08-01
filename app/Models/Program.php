@@ -5,21 +5,30 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Program extends Model // Class name is Program
+class Program extends Model 
 {
     use HasFactory;
 
-    protected $table = 'programs'; // Maps to the 'programs' table
-    protected $primaryKey = 'id'; // Assuming 'id' is the primary key
+    protected $table = 'programs'; 
+    protected $primaryKey = 'id'; 
 
     protected $fillable = [
-        'course_name', // Database column name, but will be used as 'program_name' in UI
+        'course_name', 
         'qualification_level',
         'duration_hours',
         'duration_days',
         'description',
         'status',
+        'enrollment_start_date',
+        'enrollment_end_date',
     ];
+
+
+     protected $casts = [
+      'enrollment_start_date' => 'date:Y-m-d',
+        'enrollment_end_date' => 'date:Y-m-d',
+    ];
+
 
     // You would define relationships here, for example:
     // public function enrollments()

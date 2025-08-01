@@ -39,7 +39,7 @@ interface StudentListProps extends PageProps {
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
-    { title: 'Student Directory', href: route('admin.students.index') }
+    { title: 'Student Directory', href: route('staff.students.index') }
 ];
 
 export default function StudentList({ students, filters, programs = [] }: StudentListProps) {
@@ -64,7 +64,7 @@ export default function StudentList({ students, filters, programs = [] }: Studen
         const hasProgramChanged = programFilter !== (filters.program || '');
 
         if (!isInitialLoading && (hasSearchChanged || hasProgramChanged)) {
-            router.get(route('admin.students.index'), {
+            router.get(route('staff.students.index'), {
                 search: debouncedSearchTerm,
                 program: programFilter,
             }, {
@@ -174,7 +174,7 @@ export default function StudentList({ students, filters, programs = [] }: Studen
                                                             <DropdownMenu.Trigger asChild><button className="p-2 rounded-full hover:bg-gray-100 text-gray-500"><MoreHorizontal className="w-5 h-5" /></button></DropdownMenu.Trigger>
                                                             <DropdownMenu.Portal>
                                                                 <DropdownMenu.Content className="bg-white rounded-md shadow-lg border p-1 w-48 z-10">
-                                                                    <DropdownMenu.Item asChild><Link href={route('admin.enrollment.show', { learner: student.learner_id, from: 'students' })} className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 rounded hover:bg-gray-100 cursor-pointer"><Eye className="w-4 h-4" /> View Profile</Link></DropdownMenu.Item>
+                                                                    <DropdownMenu.Item asChild><Link href={route('staff.enrollment.show', { learner: student.learner_id, from: 'students' })} className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 rounded hover:bg-gray-100 cursor-pointer"><Eye className="w-4 h-4" /> View Profile</Link></DropdownMenu.Item>
                                                                     <DropdownMenu.Item asChild><Link href={'#'} className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 rounded hover:bg-gray-100 cursor-pointer"><BarChart2 className="w-4 h-4" /> View Attendance</Link></DropdownMenu.Item>
                                                                 </DropdownMenu.Content>
                                                             </DropdownMenu.Portal>
@@ -196,7 +196,7 @@ export default function StudentList({ students, filters, programs = [] }: Studen
                                                     <DropdownMenu.Trigger asChild><button className="p-2 -mt-2 -mr-2 rounded-full hover:bg-gray-100 text-gray-500"><MoreHorizontal className="w-5 h-5" /></button></DropdownMenu.Trigger>
                                                     <DropdownMenu.Portal>
                                                         <DropdownMenu.Content className="bg-white rounded-md shadow-lg border p-1 w-48 z-10">
-                                                            <DropdownMenu.Item asChild><Link href={route('admin.enrollment.show', { learner: student.learner_id, from: 'students' })} className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 rounded hover:bg-gray-100 cursor-pointer"><Eye className="w-4 h-4" /> View Profile</Link></DropdownMenu.Item>
+                                                            <DropdownMenu.Item asChild><Link href={route('staff.enrollment.show', { learner: student.learner_id, from: 'students' })} className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 rounded hover:bg-gray-100 cursor-pointer"><Eye className="w-4 h-4" /> View Profile</Link></DropdownMenu.Item>
                                                             <DropdownMenu.Item asChild><Link href={'#'} className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 rounded hover:bg-gray-100 cursor-pointer"><BarChart2 className="w-4 h-4" /> View Attendance</Link></DropdownMenu.Item>
                                                         </DropdownMenu.Content>
                                                     </DropdownMenu.Portal>

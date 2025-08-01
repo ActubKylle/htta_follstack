@@ -339,6 +339,8 @@ export default function AdminDashboard() {
                             trend="up"
                             icon={Users}
                             color="blue"
+                            link={route('staff.students.index')} // <-- This is the corrected line
+
                             description="Active enrollments at HTTA"
                         />
                         <MetricCard

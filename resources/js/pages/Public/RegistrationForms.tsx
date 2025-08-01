@@ -1,8 +1,11 @@
+// RegistrationForms.tsx
+
 import React, { useState, useEffect, useCallback } from 'react';
-import { useForm, router,usePage } from '@inertiajs/react';
+import { useForm, router, usePage } from '@inertiajs/react';
 import Swal from 'sweetalert2'; // Import SweetAlert2
 import ImageUpload from '@/components/ui/image-upload';
-
+import SkeletonLoader from '@/components/SkeletonLoader'; // Import the SkeletonLoader
+import { useIMask } from 'react-imask'; // Import useIMask
 
 interface RegistrationFormProps {
     programs: { id: number; course_name: string }[];
@@ -37,7 +40,7 @@ interface FormData {
     province: string;
     region: string;
     facebook_account: string;
-    contact_no: string;
+    contact_no: string; // This will now be managed by IMask
 
     // Educational attainment fields aligned with the Laravel EducationalAttainment model
     no_grade_completed: boolean;
@@ -60,7 +63,7 @@ interface FormData {
     disability_types: number[];
     cause_of_disability: string;
 
-    program_id: number | '' | undefined; 
+    program_id: number | '' | undefined;
     scholarship_package: string;
 
     consent_given: boolean;
@@ -99,9 +102,9 @@ interface InputFieldProps {
 
 // Reusable Input Field Component
 const InputField: React.FC<InputFieldProps> = React.memo(({
-    id, label, type = 'text', value, onChange, error, placeholder, min, max, 
+    id, label, type = 'text', value, onChange, error, placeholder, min, max,
     options, isChecked, onCheckboxChange, name, className
-}) => 
+}) =>
     <div className="mb-5">
         <label htmlFor={id} className="block text-gray-900 text-sm font-semibold mb-2">
             {label}
@@ -179,10 +182,25 @@ const validateField = (field: keyof FormData, value: any): string | null => {
         if ((field === 'thumbmark_image' || field === 'picture_image') && !value) return 'This image is required.';
     }
 
+    // Custom validation for contact_no
+    if (field === 'contact_no') {
+        if (typeof value === 'string' && !value.trim()) {
+            return 'Contact number is required.';
+        }
+        // Regex for Philippine mobile numbers:
+        // - Starts with 09 or +639
+        // - Followed by 9 digits
+        // - Allows optional hyphens, spaces, and removes them for validation
+        const cleanedValue = value.replace(/[-\s]/g, ''); // Remove hyphens and spaces for validation
+        const phMobileRegex = /^(09|\+639)\d{9}$/;
+        if (!phMobileRegex.test(cleanedValue)) {
+            return 'Please enter a valid Philippine mobile number (e.g., 09XX-XXX-XXXX or +639XX-XXX-XXXX).';
+        }
+    }
+
     // Add custom field validation as needed
     return null;
 };
-
 
 
 const RegistrationForm: React.FC<RegistrationFormProps> = ({ programs = [] }) => {
@@ -196,7 +214,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ programs = [] }) =>
 
         number_street: '', city_municipality: '', barangay: '', district: '',
         province: '', region: '', facebook_account: '', contact_no: '',
-        
+
         // Initializing all educational attainment fields to false, aligning with migration defaults
         no_grade_completed: false,
         elementary_undergraduate: false,
@@ -222,6 +240,48 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ programs = [] }) =>
     const [currentStep, setCurrentStep] = useState(0);
     // State to manage client-side validation errors
     const [clientSideErrors, setClientSideErrors] = useState<Record<string, string>>({});
+    // State for loading, true when transitioning between steps
+    const [isLoading, setIsLoading] = useState(false);
+
+    // IMask setup for contact_no
+    const { ref: contactNoRef, unmaskedValue: contactNoUnmaskedValue } = useIMask(
+        {
+            mask: '+{63}900-000-0000', // Philippine mobile format (e.g., +63917-123-4567)
+           definitions: { '0': /[0-9]/, '9': /[0-9]/ },
+            lazy: false, // Show mask always
+            overwrite: 'shift', // Shift existing characters if new char typed in middle
+        },
+        {
+            // The onAccept callback is called on each input change,
+            // even if the mask is not fully completed.
+            onAccept: (value) => {
+                // Update the form data with the masked value
+                handleInputChange('contact_no', value);
+            },
+            // onComplete is called when the mask is fully filled.
+            // You might want to use unmaskedValue for backend if you only need digits.
+            onComplete: (value) => {
+                // Optionally, store the unmasked value if your backend expects it.
+                // For this example, we'll continue using the masked value in data.contact_no
+                // but for submission, you might want to send contactNoUnmaskedValue.
+                // console.log("IMask completed, unmasked value:", contactNoUnmaskedValue);
+            }
+        }
+    );
+
+    // Effect to update IMask input value when `data.contact_no` changes externally (e.g., on form reset)
+    useEffect(() => {
+        // Only set the IMask value if it's different from the current data value
+        if (contactNoRef.current && (contactNoRef.current as HTMLInputElement).value !== data.contact_no) {
+            // Using `maskRef.current.setValue` for programmatic changes is the IMask way
+            // The `maskRef.current` of a `useIMask` hook provides the IMask.Masked object.
+            // You need to cast contactNoRef.current to access its `maskRef` property.
+            if ((contactNoRef.current as any).maskRef.current) { // Added (contactNoRef.current as any) for type assertion
+                (contactNoRef.current as any).maskRef.current.setValue(data.contact_no, { raw: false });
+            }
+        }
+    }, [data.contact_no, contactNoRef]);
+
 
     const steps = [
         "Personal",
@@ -230,7 +290,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ programs = [] }) =>
         "Class",
         "Course",
         "Consent",
-        "Review"    
+        "Review"
     ];
 
     // Simulate fetching options (replace with actual Inertia props or API call if needed)
@@ -280,32 +340,33 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ programs = [] }) =>
     }, []);
 
     const calculateAge = (birthdate: string): number | '' => {
-    if (!birthdate) return '';
-    const birthDateObj = new Date(birthdate);
-    const today = new Date();
-    let calculatedAge = today.getFullYear() - birthDateObj.getFullYear();
-    const monthDifference = today.getMonth() - birthDateObj.getMonth();
-    if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDateObj.getDate())) {
-        calculatedAge--;
-    }
-    return calculatedAge >= 0 ? calculatedAge : '';
-};
+        if (!birthdate) return '';
+        const birthDateObj = new Date(birthdate);
+        const today = new Date();
+        let calculatedAge = today.getFullYear() - birthDateObj.getFullYear();
+        const monthDifference = today.getMonth() - birthDateObj.getMonth();
+        if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDateObj.getDate())) {
+            calculatedAge--;
+        }
+        return calculatedAge >= 0 ? calculatedAge : '';
+    };
+
 
     const handleInputChange = (field: keyof FormData, value: any) => {
-    setData(field, value);
-    const errorMsg = validateField(field, value);
-    setClientSideErrors(prev => {
-        const newErrors = { ...prev };
-        if (errorMsg) {
-            newErrors[field] = errorMsg;
-        } else {
-            delete newErrors[field];
-        }
-        return newErrors;
-    });
-};
+        setData(field, value);
+        const errorMsg = validateField(field, value);
+        setClientSideErrors(prev => {
+            const newErrors = { ...prev };
+            if (errorMsg) {
+                newErrors[field] = errorMsg;
+            } else {
+                delete newErrors[field];
+            }
+            return newErrors;
+        });
+    };
 
-    const validateStep = async (step: number): Promise<boolean> => {
+    const validateStep = useCallback(async (step: number): Promise<boolean> => {
         let currentStepFields: (keyof FormData)[] = [];
         const newLocalErrors: Record<string, string> = {}; // Use a new object for local errors
 
@@ -319,7 +380,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ programs = [] }) =>
             case 2: // Educational Background
                 // For educational attainment, at least one must be true
                 const isAnyEducationalAttainmentSelected = educationalAttainmentLevels.some(
-                    (level) => data[level.value as keyof FormData] === true
+                    (levelOption) => data[levelOption.value as keyof FormData] === true
                 );
                 if (!isAnyEducationalAttainmentSelected) {
                     newLocalErrors.educational_attainment_level = 'Please select your highest educational attainment.';
@@ -371,14 +432,18 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ programs = [] }) =>
         setClientSideErrors(newLocalErrors);
 
         return Object.keys(newLocalErrors).length === 0; // Return true if no local errors
-    };
+    }, [data, educationalAttainmentLevels]);
 
 
-const handleNext = useCallback(async () => {
+    const handleNext = useCallback(async () => {
         const isValid = await validateStep(currentStep);
         if (isValid) {
-            setCurrentStep((prev) => prev + 1);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setIsLoading(true); // Start loading
+            setTimeout(() => { // Simulate a network delay
+                setCurrentStep((prev) => prev + 1);
+                setIsLoading(false); // Stop loading after transition
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 300); // Adjust delay as needed
         } else {
             // Display alert only if there are client-side errors
             if (Object.keys(clientSideErrors).length > 0) {
@@ -391,23 +456,39 @@ const handleNext = useCallback(async () => {
                 });
             }
         }
-}, [currentStep, validateStep]);
+    }, [currentStep, validateStep, clientSideErrors]);
 
- const handlePrevious = useCallback(() => {
-    setCurrentStep((prev) => prev - 1);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}, []);
+    const handlePrevious = useCallback(() => {
+        setIsLoading(true); // Start loading
+        setTimeout(() => { // Simulate a network delay
+            setCurrentStep((prev) => prev - 1);
+            setIsLoading(false); // Stop loading after transition
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 300); // Adjust delay as needed
+    }, []);
 
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setIsLoading(true); // Start loading on submit
+
+        // Before validation/submission, ensure the contact_no data is the unmasked version if that's what your backend expects
+        // If your backend expects the formatted string (e.g., "+639XX-XXX-XXXX"), then data.contact_no is already good.
+        // If it expects pure digits, you'd do: setData('contact_no', contactNoUnmaskedValue); here.
+        // For Form 63, typically the full number with +63 is preferred.
+
         const isValid = await validateStep(currentStep); // Run client-side validation for the current step
 
         if (isValid) {
             router.post(route('register.learner'), data, {
                 forceFormData: true,
                 onSuccess: () => {
+                    setIsLoading(false); // Stop loading on success
                     reset();
+                    // Manually reset the IMask input's value as useForm's reset doesn't directly interact with ref
+                    if (contactNoRef.current && (contactNoRef.current as any).maskRef.current) {
+                        (contactNoRef.current as any).maskRef.current.setValue('', { raw: false });
+                    }
                     setCurrentStep(0); // Reset to first step on success
                     setClientSideErrors({}); // Clear client-side errors on success
                     Swal.fire({
@@ -419,6 +500,7 @@ const handleNext = useCallback(async () => {
                     });
                 },
                 onError: (validationErrors) => {
+                    setIsLoading(false); // Stop loading on error
                     // Build an HTML list of errors
                     const errorList = Object.values(validationErrors)
                         .map(msg => `<li>${msg}</li>`)
@@ -448,6 +530,7 @@ const handleNext = useCallback(async () => {
                 }
             });
         } else {
+            setIsLoading(false); // Stop loading if client-side validation fails
             Swal.fire({
                 icon: 'error',
                 title: 'Form Validation Failed',
@@ -459,33 +542,33 @@ const handleNext = useCallback(async () => {
     };
 
     // Handler for educational attainment radio buttons to ensure only one is true
-   const handleEducationalAttainmentChange = (field: keyof FormData, isChecked: boolean) => {
-    if (!isChecked) return; // Don't process unchecking
-    
-    setData(prevData => {
-        const updates: Partial<FormData> = {};
-        // Only reset others if we're selecting a new one
-        educationalAttainmentLevels.forEach(level => {
-            if (level.value !== field && prevData[level.value as keyof FormData]) {
-                updates[level.value as keyof FormData] = false;
-            }
-        });
-        updates[field] = true;
-        return { ...prevData, ...updates };
-    });
+    const handleEducationalAttainmentChange = (field: keyof FormData, isChecked: boolean) => {
+        if (!isChecked) return; // Don't process unchecking
 
-    // Validate group
-    const isAnySelected = educationalAttainmentLevels.some(level => field === level.value && isChecked);
-    setClientSideErrors(prev => {
-        const newErrors = { ...prev };
-        if (!isAnySelected) {
-            newErrors.educational_attainment_level = 'Please select your highest educational attainment.';
-        } else {
-            delete newErrors.educational_attainment_level;
-        }
-        return newErrors;
-    });
-};
+        setData(prevData => {
+            const updates: Partial<FormData> = {};
+            // Only reset others if we're selecting a new one
+            educationalAttainmentLevels.forEach(level => {
+                if (level.value !== field && prevData[level.value as keyof FormData]) {
+                    updates[level.value as keyof FormData] = false;
+                }
+            });
+            updates[field] = true;
+            return { ...prevData, ...updates };
+        });
+
+        // Validate group
+        const isAnySelected = educationalAttainmentLevels.some(level => field === level.value && isChecked);
+        setClientSideErrors(prev => {
+            const newErrors = { ...prev };
+            if (!isAnySelected) {
+                newErrors.educational_attainment_level = 'Please select your highest educational attainment.';
+            } else {
+                delete newErrors.educational_attainment_level;
+            }
+            return newErrors;
+        });
+    };
     const handleCheckboxChange = (field: keyof FormData, id: number) => {
         setData(prevData => {
             const currentArray = (prevData[field] as number[] | undefined) || [];
@@ -497,39 +580,42 @@ const handleNext = useCallback(async () => {
     };
 
     const handleFileChange = (field: keyof FormData, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files ? e.target.files[0] : null;
-    setData(field, file);
-    const errorMsg = validateField(field, file);
-    setClientSideErrors(prev => {
-        const newErrors = { ...prev };
-        if (errorMsg) {
-            newErrors[field] = errorMsg;
-        } else {
-            delete newErrors[field];
-        }
-        return newErrors;
-    });
-};
+        const file = e.target.files ? e.target.files[0] : null;
+        setData(field, file);
+        const errorMsg = validateField(field, file);
+        setClientSideErrors(prev => {
+            const newErrors = { ...prev };
+            if (errorMsg) {
+                newErrors[field] = errorMsg;
+            } else {
+                delete newErrors[field];
+            }
+            return newErrors;
+        });
+    };
 
     const renderStepContent = () => {
         // Helper to get the selected educational attainment label for review
         const getSelectedEducationalAttainment = () => {
-            const selectedLevel = educationalAttainmentLevels.find(level => data[level.value as keyof FormData] === true);
-            return selectedLevel ? selectedLevel.label : 'None selected';
+            // FIX: The `level` variable was not defined in this scope.
+            // It should be `levelOption` as defined in the .some() callback within validateStep.
+            // Let's ensure we use the correct iteration variable here too.
+            const selectedLevelOption = educationalAttainmentLevels.find(levelOption => data[levelOption.value as keyof FormData] === true);
+            return selectedLevelOption ? selectedLevelOption.label : 'None selected';
         };
 
         switch (currentStep) {
             case 0: // Personal Information
                 return (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <InputField
-                                id="last_name"
-                                label="Last Name"
-                                value={data.last_name}
-                                onChange={e => handleInputChange('last_name', e.target.value)}
-                                error={errors.last_name || clientSideErrors.last_name}
-                            />       
-                         <InputField id="first_name" label="First Name" value={data.first_name} onChange={e => handleInputChange('first_name', e.target.value)} error={errors.first_name || clientSideErrors.first_name} />
+                        <InputField
+                            id="last_name"
+                            label="Last Name"
+                            value={data.last_name}
+                            onChange={e => handleInputChange('last_name', e.target.value)}
+                            error={errors.last_name || clientSideErrors.last_name}
+                        />
+                        <InputField id="first_name" label="First Name" value={data.first_name} onChange={e => handleInputChange('first_name', e.target.value)} error={errors.first_name || clientSideErrors.first_name} />
                         <InputField id="middle_name" label="Middle Name" value={data.middle_name} onChange={e => handleInputChange('middle_name', e.target.value)} error={errors.middle_name || clientSideErrors.middle_name} />
                         <InputField id="extension_name" label="Extension Name (Jr., Sr.)" value={data.extension_name} onChange={e => handleInputChange('extension_name', e.target.value)} error={errors.extension_name || clientSideErrors.extension_name} />
 
@@ -554,7 +640,7 @@ const handleNext = useCallback(async () => {
                                 { value: 'Common Law/Live-in', label: 'Common Law/Live-in' },
                             ]}
                         />
-                        <InputField id="birth_date" label="Birthdate" type="date"  value={data.birth_date} onChange={e => {handleInputChange('birth_date', e.target.value); handleInputChange('age', calculateAge(e.target.value)); }} error={errors.birth_date || clientSideErrors.birth_date} />
+                        <InputField id="birth_date" label="Birthdate" type="date" value={data.birth_date} onChange={e => { handleInputChange('birth_date', e.target.value); handleInputChange('age', calculateAge(e.target.value)); }} error={errors.birth_date || clientSideErrors.birth_date} />
                         <InputField id="age" label="Age" type="number" value={data.age} readOnly onChange={e => handleInputChange('age', parseInt(e.target.value) || '')} error={errors.age || clientSideErrors.age} min="1" />
                         <InputField id="nationality" label="Nationality" value={data.nationality} onChange={e => handleInputChange('nationality', e.target.value)} error={errors.nationality || clientSideErrors.nationality} />
                         <InputField id="email" label="Email Address" type="email" value={data.email} onChange={e => handleInputChange('email', e.target.value)} error={errors.email || clientSideErrors.email} />
@@ -563,16 +649,39 @@ const handleNext = useCallback(async () => {
             case 1: // Contact & Address
                 return (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <InputField id="number_street" label="Number, Street" value={data.number_street} onChange={e => handleInputChange('number_street', e.target.value)} error={errors.number_street || clientSideErrors.number_street} />
-                        <InputField id="barangay" label="Barangay" value={data.barangay} onChange={e => handleInputChange('barangay', e.target.value)} error={errors.barangay || clientSideErrors.barangay} />
-                        <InputField id="city_municipality" label="City/Municipality" value={data.city_municipality} onChange={e => handleInputChange('city_municipality', e.target.value)} error={errors.city_municipality || clientSideErrors.city_municipality} />
-                        <InputField id="district" label="District" value={data.district} onChange={e => handleInputChange('district', e.target.value)} error={errors.district || clientSideErrors.district} />
-                        <InputField id="province" label="Province" value={data.province} onChange={e => handleInputChange('province', e.target.value)} error={errors.province || clientSideErrors.province} />
-                        <InputField id="region" label="Region" value={data.region} onChange={e => handleInputChange('region', e.target.value)} error={errors.region || clientSideErrors.region} />
-                        <InputField id="contact_no" label="Contact No." value={data.contact_no} onChange={e => handleInputChange('contact_no', e.target.value)} error={errors.contact_no || clientSideErrors.contact_no} />
-                        <InputField id="facebook_account" label="Facebook Account" value={data.facebook_account} onChange={e => handleInputChange('facebook_account', e.target.value)} error={errors.facebook_account || clientSideErrors.facebook_account} />
-                        <InputField id="parent_guardian_name" label="Parent/Guardian Name" value={data.parent_guardian_name} onChange={e => handleInputChange('parent_guardian_name', e.target.value)} error={errors.parent_guardian_name || clientSideErrors.parent_guardian_name} />
-                        <InputField id="parent_guardian_mailing_address" label="Parent/Guardian Mailing Address" type="textarea" value={data.parent_guardian_mailing_address} onChange={e => handleInputChange('parent_guardian_mailing_address', e.target.value)} error={errors.parent_guardian_mailing_address || clientSideErrors.parent_guardian_mailing_address} />
+                        <InputField id="number_street" label="Number, Street" value={data.number_street} onChange={e => handleInputChange('number_street', e.target.value)} error={errors.number_street || clientSideErrors.number_street} placeholder="e.g., Block 123, Lot 45, Main St." />
+                        <InputField id="barangay" label="Barangay" value={data.barangay} onChange={e => handleInputChange('barangay', e.target.value)} error={errors.barangay || clientSideErrors.barangay} placeholder="e.g., Poblacion" />
+                        <InputField id="city_municipality" label="City/Municipality" value={data.city_municipality} onChange={e => handleInputChange('city_municipality', e.target.value)} error={errors.city_municipality || clientSideErrors.city_municipality} placeholder="e.g., City of El Salvador" />
+                        <InputField id="district" label="District" value={data.district} onChange={e => handleInputChange('district', e.target.value)} error={errors.district || clientSideErrors.district} placeholder="e.g., 2nd District" />
+                        <InputField id="province" label="Province" value={data.province} onChange={e => handleInputChange('province', e.target.value)} error={errors.province || clientSideErrors.province} placeholder="e.g., Misamis Oriental" />
+                        <InputField id="region" label="Region" value={data.region} onChange={e => handleInputChange('region', e.target.value)} error={errors.region || clientSideErrors.region} placeholder="e.g., Region X (Northern Mindanao)" />
+
+                        {/* IMask integrated Contact No. Field */}
+                        <div className="mb-5">
+                            <label htmlFor="contact_no" className="block text-gray-900 text-sm font-semibold mb-2">
+                                Contact No.
+                            </label>
+                            <input
+                                ref={contactNoRef as React.Ref<HTMLInputElement>} // Assign the ref from useIMask
+                                id="contact_no"
+                                name="contact_no"
+                                type="tel" // Use type="tel" for mobile friendly keyboards
+                                // The value is managed by IMask, but setting initial value from data helps
+                                defaultValue={data.contact_no as string}
+                                // onChange is not strictly needed for IMask as it uses onAccept/onComplete
+                                // but if you had other logic, you might keep it.
+                                // For simplicity with IMask, we handle `setData` in `useIMask` hooks.
+                                onChange={() => { /* no-op, IMask handles updates via ref */ }}
+                                className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-3 focus:ring-htta-blue focus:border-htta-blue transition duration-300 ease-in-out text-gray-900 shadow-sm ${(errors.contact_no || clientSideErrors.contact_no) ? 'border-red-500' : ''}`}
+                                placeholder="+639XX-XXX-XXXX"
+                            />
+                            {(errors.contact_no || clientSideErrors.contact_no) && <p className="text-red-500 text-xs italic mt-1">{errors.contact_no || clientSideErrors.contact_no}</p>}
+                        </div>
+                        {/* End of IMask integrated Contact No. Field */}
+
+                        <InputField id="facebook_account" label="Facebook Account" value={data.facebook_account} onChange={e => handleInputChange('facebook_account', e.target.value)} error={errors.facebook_account || clientSideErrors.facebook_account} placeholder="e.g., John.Doe.FB" />
+                        <InputField id="parent_guardian_name" label="Parent/Guardian Name" value={data.parent_guardian_name} onChange={e => handleInputChange('parent_guardian_name', e.target.value)} error={errors.parent_guardian_name || clientSideErrors.parent_guardian_name} placeholder="e.g., Jane Doe" />
+                        <InputField id="parent_guardian_mailing_address" label="Parent/Guardian Mailing Address" type="textarea" value={data.parent_guardian_mailing_address} onChange={e => handleInputChange('parent_guardian_mailing_address', e.target.value)} error={errors.parent_guardian_mailing_address || clientSideErrors.parent_guardian_mailing_address} placeholder="e.g., Block 123, Lot 45, Main St., Poblacion, City of El Salvador, Misamis Oriental, Region X" />
                     </div>
                 );
             case 2: // Educational Background
@@ -642,7 +751,7 @@ const handleNext = useCallback(async () => {
             case 4: // Course & Scholarship
                 return (
                     <div className="grid grid-cols-1 gap-6">
-                        <InputField id="program_id" label="Name of Course/Qualification" type="select" value={data.program_id} onChange={e => handleInputChange('program_id', Number(e.target.value))} error={errors.program_id || clientSideErrors.program_id} options={programs.map(program => ({ value: program.id.toString(), label: program.course_name, }))}/>
+                        <InputField id="program_id" label="Name of Course/Qualification" type="select" value={data.program_id} onChange={e => handleInputChange('program_id', Number(e.target.value))} error={errors.program_id || clientSideErrors.program_id} options={programs.map(program => ({ value: program.id.toString(), label: program.course_name, }))} />
                         <InputField id="scholarship_package" label="If Scholar, What Type of Scholarship Package (TWSP, PESFA, STEP, others)?" value={data.scholarship_package} onChange={e => handleInputChange('scholarship_package', e.target.value)} error={errors.scholarship_package || clientSideErrors.scholarship_package} />
                     </div>
                 );
@@ -728,7 +837,7 @@ const handleNext = useCallback(async () => {
                         {/* Course & Scholarship */}
                         <div className="bg-gray-100 p-5 rounded-lg shadow-md">
                             <h4 className="font-bold text-lg text-htta-blue mb-3">Course & Scholarship</h4>
-                            <p className="text-gray-900 mb-1"><strong>Course/Qualification:</strong> {data.program_id}</p>
+                            <p className="text-gray-900 mb-1"><strong>Course/Qualification:</strong> {programs.find(p => p.id === data.program_id)?.course_name || 'N/A'}</p>
                             <p className="text-gray-900"><strong>Scholarship Package:</strong> {data.scholarship_package || 'N/A'}</p>
                         </div>
 
@@ -746,16 +855,24 @@ const handleNext = useCallback(async () => {
         }
     };
 
-  const handleStepClick = useCallback(async (stepIndex: number) => {
-    if (stepIndex < currentStep) {
-        setCurrentStep(stepIndex);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-        const isValid = await validateStep(currentStep);
-        if (isValid) {
-            setCurrentStep(stepIndex);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+    const handleStepClick = useCallback(async (stepIndex: number) => {
+        if (stepIndex < currentStep) {
+            setIsLoading(true); // Start loading
+            setTimeout(() => { // Simulate a network delay
+                setCurrentStep(stepIndex);
+                setIsLoading(false); // Stop loading after transition
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 300); // Adjust delay as needed
         } else {
+            const isValid = await validateStep(currentStep);
+            if (isValid) {
+                setIsLoading(true); // Start loading
+                setTimeout(() => { // Simulate a network delay
+                    setCurrentStep(stepIndex);
+                    setIsLoading(false); // Stop loading after transition
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }, 300); // Adjust delay as needed
+            } else {
                 if (Object.keys(clientSideErrors).length > 0) {
                     Swal.fire({
                         icon: 'warning',
@@ -767,7 +884,7 @@ const handleNext = useCallback(async () => {
                 }
             }
         }
-}, [currentStep, validateStep]);
+    }, [currentStep, validateStep, clientSideErrors]);
 
     return (
         <form onSubmit={handleSubmit} className="space-y-8 bg-dark p-6 sm:p-10 rounded-xl shadow-2xl max-w-4xl mx-auto my-8 font-inter">
@@ -780,10 +897,10 @@ const handleNext = useCallback(async () => {
                                 type="button"
                                 onClick={() => handleStepClick(index)}
                                 className={`flex flex-col items-center z-10 w-1/7 px-1 sm:px-2 cursor-pointer focus:outline-none focus:ring-3 focus:ring-htta-blue focus:ring-offset-2 rounded-full transition-all duration-300 ease-in-out
-                                    ${index <= currentStep ? 'text-htta-blue' : 'text-gray-700'}`}
+                                        ${index <= currentStep ? 'text-htta-blue' : 'text-gray-700'}`}
                             >
                                 <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center font-bold text-dark transition-all duration-300 ease-in-out text-sm sm:text-base
-                                    ${index === currentStep ? 'bg-htta-blue scale-110 shadow-lg' :
+                                        ${index === currentStep ? 'bg-htta-blue scale-110 shadow-lg' :
                                         index < currentStep ? 'bg-htta-green' : 'bg-gray-300'}`}>
                                     {index + 1}
                                 </div>
@@ -793,7 +910,7 @@ const handleNext = useCallback(async () => {
                             </button>
                             {index < steps.length - 1 && (
                                 <div className={`flex-auto border-t-2 transition-all duration-300 ease-in-out
-                                    ${index < currentStep ? 'border-htta-green' : 'border-gray-300'}`}></div>
+                                        ${index < currentStep ? 'border-htta-green' : 'border-gray-300'}`}></div>
                             )}
                         </React.Fragment>
                     ))}
@@ -820,9 +937,9 @@ const handleNext = useCallback(async () => {
                 </div>
             )}
 
-            {/* Render Current Step Content */}
+            {/* Render Current Step Content or Skeleton Loader */}
             <div className="p-5 sm:p-8 border border-gray-200 rounded-xl bg-white shadow-inner">
-                {renderStepContent()}
+                {isLoading ? <SkeletonLoader /> : renderStepContent()}
             </div>
 
             {/* Navigation Buttons */}
@@ -832,6 +949,7 @@ const handleNext = useCallback(async () => {
                         type="button"
                         onClick={handlePrevious}
                         className="w-full sm:w-auto px-8 py-3 bg-gray-500 text-white font-semibold rounded-full shadow-md hover:bg-gray-600 transition duration-300 transform hover:scale-105"
+                        disabled={isLoading || processing} // Disable buttons during loading
                     >
                         &larr; Previous
                     </button>
@@ -841,8 +959,8 @@ const handleNext = useCallback(async () => {
                     <button
                         type="button"
                         onClick={handleNext}
-                        className={`w-full sm:w-auto px-8 py-3 bg-htta-blue text-dark font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300 transform hover:scale-105 ${Object.keys(clientSideErrors).length > 0 ? 'opacity-50 cursor-not-allowed' : ''} ${currentStep === 0 ? 'sm:ml-auto' : ''}`}
-                        disabled={Object.keys(clientSideErrors).length > 0}
+                        className={`w-full sm:w-auto px-8 py-3 bg-htta-blue text-dark font-semibold rounded-full shadow-md hover:bg-blue-700 transition duration-300 transform hover:scale-105 ${(Object.keys(clientSideErrors).length > 0 || isLoading || processing) ? 'opacity-50 cursor-not-allowed' : ''} ${currentStep === 0 ? 'sm:ml-auto' : ''}`}
+                        disabled={Object.keys(clientSideErrors).length > 0 || isLoading || processing} // Disable buttons during loading
                     >
                         Next &rarr;
                     </button>
@@ -851,10 +969,10 @@ const handleNext = useCallback(async () => {
                 {currentStep === steps.length - 1 && (
                     <button
                         type="submit"
-                        disabled={processing || Object.keys(clientSideErrors).length > 0}
-                        className={`w-full sm:w-auto px-10 py-3 bg-htta-green text-dark font-bold rounded-full shadow-lg hover:bg-green-700 transition duration-300 transform hover:scale-105 ${(processing || Object.keys(clientSideErrors).length > 0) && 'opacity-50 cursor-not-allowed'}`}
+                        disabled={processing || isLoading || Object.keys(clientSideErrors).length > 0} // Disable buttons during loading or processing
+                        className={`w-full sm:w-auto px-10 py-3 bg-htta-green text-dark font-bold rounded-full shadow-lg hover:bg-green-700 transition duration-300 transform hover:scale-105 ${(processing || isLoading || Object.keys(clientSideErrors).length > 0) && 'opacity-50 cursor-not-allowed'}`}
                     >
-                        {processing ? (
+                        {(processing || isLoading) ? (
                             <span className="flex items-center justify-center">
                                 <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-dark" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

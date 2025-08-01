@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Learner extends Model
 {
@@ -39,6 +40,13 @@ class Learner extends Model
         't2mis_auto_generated' => 'boolean',
     ];
 
+     public function scholarships(): BelongsToMany
+    {
+        return $this->belongsToMany(Scholarship::class, 'student_scholarships', 'learner_id', 'scholarship_id')
+                    ->withPivot('status', 'application_date', 'date_processed', 'remarks')
+                    ->withTimestamps();
+    }
+    
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id', 'id');

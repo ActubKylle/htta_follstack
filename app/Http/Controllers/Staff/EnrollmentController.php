@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Staff;
 
 use App\Http\Controllers\Controller;
 use App\Models\Learner;
@@ -52,7 +52,9 @@ class EnrollmentController extends Controller
                                     $pictureImageUrl = null;
                                     if ($learner->registrationSignature && $learner->registrationSignature->picture_image_path) {
                                         $dbPath = $learner->registrationSignature->picture_image_path;
-                                        $pictureImageUrl = Storage::url($dbPath);
+
+                                        $cleanPath = str_replace('storage/', '', $dbPath);
+                                        $pictureImageUrl = Storage::url($cleanPath); 
                                     }
 
                                     return [
@@ -70,7 +72,7 @@ class EnrollmentController extends Controller
                                     ];
                                 });
 
-        return Inertia::render('Admin/Enrollments', [
+        return Inertia::render('Staff/Enrollments', [
             'recentLearners' => $recentLearners,
             'filters' => [
                 'search' => $search,
@@ -103,7 +105,7 @@ class EnrollmentController extends Controller
             }
         }
 
-        return Inertia::render('Admin/EnrollmentDetails', [
+        return Inertia::render('Staff/EnrollmentDetails', [
             'learner' => $learner,
         ]);
     }
@@ -144,11 +146,11 @@ class EnrollmentController extends Controller
                 $user->email, // Using email as username
                 $randomPassword
             ));
-            return redirect()->route('admin.enrollments')->with('success', 'Learner accepted and email sent with credentials.');
+            return redirect()->route('staff.enrollments')->with('success', 'Learner accepted and email sent with credentials.');
         } catch (\Exception $e) {
             // Log the error for debugging
             \Log::error('Failed to send enrollment acceptance email: ' . $e->getMessage());
-            return redirect()->route('admin.enrollments')->with('warning', 'Learner accepted, but email sending failed. Please check mail configuration.');
+            return redirect()->route('staff.enrollments')->with('warning', 'Learner accepted, but email sending failed. Please check mail configuration.');
         }
     }
 
@@ -168,7 +170,7 @@ class EnrollmentController extends Controller
         // Optionally, you could send a rejection email here if desired.
         // For example: Mail::to($learner->user->email)->send(new EnrollmentRejected($learner->first_name, $learner->last_name));
 
-        return redirect()->route('admin.enrollments')->with('success', 'Learner enrollment rejected.');
+        return redirect()->route('staff.enrollments')->with('success', 'Learner enrollment rejected.');
     }
 
 
@@ -251,7 +253,7 @@ $students = $query->orderBy('last_name', 'asc')
 
 
     // Modify the return statement
-    return Inertia::render('Admin/StudentList', [
+    return Inertia::render('Staff/StudentList', [
         'students' => $students,
         // 'stats' => $stats, // Pass the new stats
         'filters' => $request->only(['search', 'program', 'scholarship']),

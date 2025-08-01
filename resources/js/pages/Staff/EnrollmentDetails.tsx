@@ -1,7 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react'; // ✅ Import useEffect
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type PageProps } from '@/types';
 import { Head,router  } from '@inertiajs/react';
+import {
+    LoadingButton,
+    LoadingOverlay,
+    PageLoadingSkeleton,
+    TableLoadingSkeleton,
+    useLoadingStates
+} from '@/components/Loading';
 
 // Define types for Learner and its relationships for the details page
 interface DetailedLearnerData {
@@ -79,6 +86,14 @@ interface DetailedLearnerData {
     course_enrollments: Array<{
         enrollment_id: number;
         course_qualification: string;
+        program: {
+            program_id: number;
+            course_name: string;
+            course_code: string;
+            course_description?: string;
+            course_duration?: string;
+            course_fee?: number;
+        };
         scholarship_package?: string;
     }>;
     privacy_consent: {
@@ -102,29 +117,90 @@ interface EnrollmentDetailsProps extends PageProps {
      from: 'enrollments' | 'students'; 
 }
 
+
+
 export default function EnrollmentDetails({ learner }: EnrollmentDetailsProps) {
+
+        const { loadingStates, setLoading } = useLoadingStates({ pageLoad: true });
+
+         useEffect(() => {
+        const timer = setTimeout(() => {
+            setLoading('pageLoad', false);
+        }, 500); // 0.5 second delay
+        return () => clearTimeout(timer);
+    }, []); // Empty array ensures this runs only once
+
+    // 3. Handle the loading state: If true, return a skeleton UI immediately.
+    if (loadingStates.pageLoad) {
+        const loadingBreadcrumbs: BreadcrumbItem[] = [
+            {
+                title: 'Enrollments',
+                href: route('staff.enrollments'),
+            },
+            {
+                title: 'Loading Details...',
+                href: '#',
+            },
+        ];
+
+        return (
+            <AppLayout breadcrumbs={loadingBreadcrumbs}>
+                <Head title="Loading Enrollment Details..." />
+                <PageLoadingSkeleton
+                    showHeader={true}
+                    showStats={true}
+                    showFilters={false}
+                    showTable={true} // Represents the main content blocks
+                />
+            </AppLayout>
+        );
+    }
+
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Enrollments',
-            href: route('admin.enrollments'),
+            href: route('staff.enrollments'),
         },
         {
             title: `${learner.first_name} ${learner.last_name}`,
-            href: route('admin.enrollment.show', learner.learner_id),
+            href: route('staff.enrollment.show', learner.learner_id),
         },
     ];
 
     // Helper to render boolean educational attainments
-    const renderEducationalAttainment = (edu: DetailedLearnerData['educational_attainment']) => {
-        const attainmentLevels = [];
-        for (const key in edu) {
-            if (key !== 'education_id' && key !== 'learner_id' && typeof edu[key as keyof typeof edu] === 'boolean' && edu[key as keyof typeof edu]) {
-                const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
-                attainmentLevels.push(formattedKey);
+ const renderEducationalAttainment = (edu: DetailedLearnerData['educational_attainment']) => {
+    const attainmentLevels: string[] = []; // Explicitly type attainmentLevels as string array
+
+    if (!edu) { // Add a check if edu object itself is null or undefined
+        return 'No educational attainment specified.';
+    }
+
+    for (const key in edu) {
+        // We ensure the property belongs to the object directly, not its prototype chain
+        // And we check if the value is truthy after excluding known non-boolean keys.
+        // This will correctly treat 1 as true and 0 as false.
+        if (Object.prototype.hasOwnProperty.call(edu, key) && key !== 'education_id' && key !== 'learner_id') {
+            const value = edu[key as keyof typeof edu];
+
+            // Check if the value is truthy (e.g., 1 or true)
+            if (value) {
+                // Ensure it's not a string or number that represents a non-boolean state we want to skip
+                // For instance, if '0' or '1' are strings, they're truthy, but we only want the '1'.
+                // If it's literally the number 1, it's truthy. If it's literally boolean true, it's truthy.
+                // If it's the number 0, it's falsy, which is correct.
+                // If the database sends "true" or "false" strings, convert them too.
+                const isTrueBooleanOrNumberOne = (typeof value === 'boolean' && value) || (typeof value === 'number' && value === 1) || (typeof value === 'string' && value.toLowerCase() === 'true');
+
+                if (isTrueBooleanOrNumberOne) {
+                    const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+                    attainmentLevels.push(formattedKey);
+                }
             }
         }
-        return attainmentLevels.length > 0 ? attainmentLevels.join(', ') : 'No educational attainment specified.';
-    };
+    }
+    return attainmentLevels.length > 0 ? attainmentLevels.join(', ') : 'No educational attainment specified.';
+};
+        console.log(learner)
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -194,7 +270,7 @@ export default function EnrollmentDetails({ learner }: EnrollmentDetailsProps) {
                                     <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
                                     </svg>
-                                    {learner.course_enrollments?.[0]?.course_qualification || 'No Course'}
+                                    {learner.course_enrollments?.[0]?.program?.course_name  || 'No Course'}
                                 </div>
                             </div>
                         </div>
@@ -367,6 +443,7 @@ export default function EnrollmentDetails({ learner }: EnrollmentDetailsProps) {
                                         <path fillRule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h2zm-1 9a1 1 0 102 0 1 1 0 00-2 0zm7-9a1 1 0 012 0 1 1 0 11-2 0z" clipRule="evenodd" />
                                     </svg>
                                     Course Enrollment
+                                    
                                 </h3>
                             </div>
                             <div className="p-6">
@@ -375,7 +452,7 @@ export default function EnrollmentDetails({ learner }: EnrollmentDetailsProps) {
                                         <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-4">
                                             <div className="flex items-center justify-between mb-2">
                                                 <span className="text-gray-600 font-medium">Course</span>
-                                                <span className="text-amber-600 font-bold">{learner.course_enrollments[0].course_qualification}</span>
+                                                <span className="text-amber-600 font-bold">{learner.course_enrollments[0].program.course_name}</span>
                                             </div>
                                             {learner.course_enrollments[0].scholarship_package && (
                                                 <div className="flex items-center justify-between">
@@ -509,7 +586,7 @@ export default function EnrollmentDetails({ learner }: EnrollmentDetailsProps) {
                                         </div>
                                     </div>
                                 </div>
-
+                                                                
                                 {/* Images Section */}
                                 <div className="mt-6 pt-6 border-t border-gray-200">
                                     <h4 className="text-lg font-semibold text-gray-800 mb-4">Attached Documents</h4>
@@ -518,11 +595,12 @@ export default function EnrollmentDetails({ learner }: EnrollmentDetailsProps) {
                                         <div className="text-center">
                                             <h5 className="text-sm font-medium text-gray-600 mb-3">Thumbmark</h5>
                                             <div className="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
+                                                
                                                 {learner.registration_signature?.thumbmark_image_path ? (
                                                     
                                                     <img 
                                                     
-                                                        src={`/${learner.registration_signature.thumbmark_image_path}`} 
+                                                        src={learner.registration_signature.thumbmark_image_path} 
                                                         alt="Thumbmark" 
                                                         className="w-24 h-24 mx-auto object-contain rounded-lg shadow-sm"
                                                     />
@@ -542,7 +620,7 @@ export default function EnrollmentDetails({ learner }: EnrollmentDetailsProps) {
                                             <div className="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
                                                 {learner.registration_signature?.picture_image_path ? (
                                                     <img 
-                                                       src={learner.registration_signature.picture_image_path} // Use directly the full URL
+                                                       src={learner.registration_signature.picture_image_path} 
                                                         alt="Picture" 
                                                         className="w-24 h-24 mx-auto object-cover rounded-lg shadow-sm"
                                                     />
@@ -576,7 +654,7 @@ export default function EnrollmentDetails({ learner }: EnrollmentDetailsProps) {
                             Edit Details
                         </button>
                         <button 
-                            onClick={() => router.visit(route('admin.enrollments'))}
+                            onClick={() => router.visit(route('staff.enrollments'))}
                             className="px-6 py-3 bg-gradient-to-r from-gray-600 to-slate-600 text-white rounded-lg hover:from-gray-700 hover:to-slate-700 transition-all duration-300 shadow-lg hover:shadow-xl font-semibold"
                         >
                             <svg className="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">

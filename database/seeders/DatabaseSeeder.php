@@ -16,10 +16,11 @@ class DatabaseSeeder extends Seeder
         $this->call([
            ClassificationSeeder::class,
             DisabilityTypeSeeder::class, // If you create one for disability types
-                ProgramSeeder::class,
+            ProgramSeeder::class,
 
             LearnerSeeder::class,
             AdminUserSeeder::class, // If you create one for admin users
+            StaffUserSeeder::class, // If you create one for staff users
         ]);
     }
 }

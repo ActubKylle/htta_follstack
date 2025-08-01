@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { type BreadcrumbItem } from '@/types';
-import { PlusCircle, Save, XCircle, AlertCircle, CheckCircle, Clock, BookOpen, Award, FileText, Activity, Sparkles } from 'lucide-react';
+import { PlusCircle, Save, XCircle, AlertCircle, CheckCircle, Clock, BookOpen, Award, FileText, Activity, Sparkles, Calendar } from 'lucide-react';
 
 // Define the form data structure
 interface ProgramFormData {
@@ -12,6 +12,8 @@ interface ProgramFormData {
     duration_days: number;
     description: string;
     status: 'active' | 'inactive';
+    enrollment_start_date: string;
+    enrollment_end_date: string;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -36,6 +38,8 @@ export default function ProgramCreate() {
         duration_days: 0,
         description: '',
         status: 'active', // Default to active
+        enrollment_start_date: '',
+        enrollment_end_date: '',
     });
 
     // Track if user has entered any data
@@ -60,7 +64,7 @@ export default function ProgramCreate() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('admin.programs.store'), {
+        post(route('staff.programs.store'), {
             onSuccess: () => {
                 setShowSuccessMessage(true);
                 reset(); // Clear the form
@@ -360,6 +364,56 @@ export default function ProgramCreate() {
                                 </div>
                             </div>
 
+                            {/* Enrollment Dates */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 pt-6 border-t border-gray-200">
+                                <div className="group">
+                                    <label htmlFor="enrollment_start_date" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                        <Calendar className="w-4 h-4 text-gray-500" />
+                                        Enrollment Start Date <span className="text-gray-500 text-xs">(Optional)</span>
+                                    </label>
+                                    <input
+                                        id="enrollment_start_date"
+                                        type="date"
+                                        value={data.enrollment_start_date}
+                                        onChange={(e) => setData('enrollment_start_date', e.target.value)}
+                                        className={`block w-full px-4 py-3 border rounded-lg shadow-sm transition-all duration-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
+                                            errors.enrollment_start_date
+                                                ? 'border-red-300 bg-red-50'
+                                                : 'border-gray-300 hover:border-gray-400 focus:bg-white'
+                                        }`}
+                                    />
+                                    {errors.enrollment_start_date && (
+                                        <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                                            <AlertCircle className="w-4 h-4" />
+                                            {errors.enrollment_start_date}
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="group">
+                                    <label htmlFor="enrollment_end_date" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                        <Calendar className="w-4 h-4 text-gray-500" />
+                                        Enrollment End Date <span className="text-gray-500 text-xs">(Optional)</span>
+                                    </label>
+                                    <input
+                                        id="enrollment_end_date"
+                                        type="date"
+                                        value={data.enrollment_end_date}
+                                        onChange={(e) => setData('enrollment_end_date', e.target.value)}
+                                        className={`block w-full px-4 py-3 border rounded-lg shadow-sm transition-all duration-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
+                                            errors.enrollment_end_date
+                                                ? 'border-red-300 bg-red-50'
+                                                : 'border-gray-300 hover:border-gray-400 focus:bg-white'
+                                        }`}
+                                    />
+                                    {errors.enrollment_end_date && (
+                                        <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                                            <AlertCircle className="w-4 h-4" />
+                                            {errors.enrollment_end_date}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+
                             {/* Description */}
                             <div className="mt-6">
                                 <label htmlFor="description" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
@@ -394,7 +448,7 @@ export default function ProgramCreate() {
                             {/* Action Buttons */}
                             <div className="flex flex-col sm:flex-row justify-end gap-3 mt-8 pt-6 border-t border-gray-200">
                                 <Link
-                                    href={route('admin.programs.manage_index')}
+                                    href={route('staff.programs.manage_index')}
                                     className="inline-flex items-center justify-center px-6 py-3 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200"
                                     onClick={(e) => {
                                         if (hasData && !confirm('You have unsaved data. Are you sure you want to leave?')) {

@@ -2,17 +2,19 @@ import React, { useEffect, useState } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { type BreadcrumbItem } from '@/types';
-import { Edit, Save, XCircle, AlertCircle, CheckCircle, Clock, BookOpen, Award, FileText, Activity } from 'lucide-react';
+import { Edit, Save, XCircle, AlertCircle, CheckCircle, Clock, BookOpen, Award, FileText, Activity, Calendar, Sparkles } from 'lucide-react';
 
-// Define the program data structure (matches ProgramData from Index.tsx)
+// Define the program data structure with enrollment dates
 interface ProgramData {
     id: number;
     course_name: string;
     qualification_level: string;
     duration_hours: number;
     duration_days: number;
-    description: string;
+    description: string | null; // Allow null
     status: 'active' | 'inactive';
+    enrollment_start_date: string | null; // Allow null
+    enrollment_end_date: string | null;   // Allow null
 }
 
 // Props for the Edit component will include the program to edit
@@ -32,17 +34,22 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function ProgramEdit({ program }: EditProgramProps) {
+        console.log('Component Loaded with Program Data:', program);
+
     const [hasChanges, setHasChanges] = useState(false);
     const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
     const { data, setData, put, processing, errors, isDirty } = useForm<ProgramData>({
         id: program.id,
+        _method: 'put',
         course_name: program.course_name,
         qualification_level: program.qualification_level,
         duration_hours: program.duration_hours,
         duration_days: program.duration_days,
-        description: program.description,
+        description: program.description || '', // Ensure description handles null
         status: program.status,
+        enrollment_start_date: program.enrollment_start_date || '',
+        enrollment_end_date: program.enrollment_end_date || '',
     });
 
     // Track changes for unsaved changes warning
@@ -61,7 +68,7 @@ export default function ProgramEdit({ program }: EditProgramProps) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        put(route('admin.programs.update', program.id), {
+        put(route('staff.programs.update', program.id), {
             onSuccess: () => {
                 setShowSuccessMessage(true);
                 setHasChanges(false);
@@ -85,6 +92,11 @@ export default function ProgramEdit({ program }: EditProgramProps) {
         window.addEventListener('beforeunload', handleBeforeUnload);
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
     }, [hasChanges]);
+
+    const isFormValid = data.course_name.trim() !== '' && 
+                       data.qualification_level !== '' && 
+                       data.duration_hours > 0 && 
+                       data.duration_days > 0;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -123,7 +135,7 @@ export default function ProgramEdit({ program }: EditProgramProps) {
                         {/* Form Header */}
                         <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4">
                             <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                                <BookOpen className="w-5 h-5" />
+                                <Sparkles className="w-5 h-5" />
                                 Program Details
                             </h2>
                         </div>
@@ -148,7 +160,7 @@ export default function ProgramEdit({ program }: EditProgramProps) {
                                                     ? 'border-red-300 bg-red-50' 
                                                     : 'border-gray-300 hover:border-gray-400 focus:bg-white'
                                             }`}
-                                            placeholder="Enter program name"
+                                            placeholder="Enter program name (e.g., Computer Systems Servicing)"
                                         />
                                         {errors.course_name && (
                                             <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
@@ -248,7 +260,7 @@ export default function ProgramEdit({ program }: EditProgramProps) {
                                                 id="duration_hours"
                                                 type="number"
                                                 min="1"
-                                                value={data.duration_hours}
+                                                value={data.duration_hours || ''}
                                                 onChange={(e) => handleHoursChange(parseInt(e.target.value) || 0)}
                                                 className={`block w-full px-4 py-3 border rounded-lg shadow-sm transition-all duration-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
                                                     errors.duration_hours 
@@ -280,7 +292,7 @@ export default function ProgramEdit({ program }: EditProgramProps) {
                                                 id="duration_days"
                                                 type="number"
                                                 min="1"
-                                                value={data.duration_days}
+                                                value={data.duration_days || ''}
                                                 onChange={(e) => setData('duration_days', parseInt(e.target.value) || 0)}
                                                 className={`block w-full px-4 py-3 border rounded-lg shadow-sm transition-all duration-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
                                                     errors.duration_days 
@@ -305,6 +317,103 @@ export default function ProgramEdit({ program }: EditProgramProps) {
                                             </p>
                                         )}
                                     </div>
+
+                                    {/* Quick Duration Presets */}
+                                    <div className="bg-gray-50 rounded-lg p-4">
+                                        <p className="text-xs font-medium text-gray-700 mb-2">Quick Presets:</p>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setData('duration_hours', 40);
+                                                    setData('duration_days', 5);
+                                                }}
+                                                className="text-xs px-3 py-1 bg-white border border-gray-200 rounded hover:bg-gray-100 transition-colors"
+                                            >
+                                                1 Week (40h)
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setData('duration_hours', 80);
+                                                    setData('duration_days', 10);
+                                                }}
+                                                className="text-xs px-3 py-1 bg-white border border-gray-200 rounded hover:bg-gray-100 transition-colors"
+                                            >
+                                                2 Weeks (80h)
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setData('duration_hours', 160);
+                                                    setData('duration_days', 20);
+                                                }}
+                                                className="text-xs px-3 py-1 bg-white border border-gray-200 rounded hover:bg-gray-100 transition-colors"
+                                            >
+                                                1 Month (160h)
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setData('duration_hours', 320);
+                                                    setData('duration_days', 40);
+                                                }}
+                                                className="text-xs px-3 py-1 bg-white border border-gray-200 rounded hover:bg-gray-100 transition-colors"
+                                            >
+                                                2 Months (320h)
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Enrollment Dates */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 pt-6 border-t border-gray-200">
+                                <div className="group">
+                                    <label htmlFor="enrollment_start_date" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                        <Calendar className="w-4 h-4 text-gray-500" />
+                                        Enrollment Start Date <span className="text-gray-500 text-xs">(Optional)</span>
+                                    </label>
+                                    <input
+                                        id="enrollment_start_date"
+                                        type="date"
+                                        value={data.enrollment_start_date}
+                                        onChange={(e) => setData('enrollment_start_date', e.target.value)}
+                                        className={`block w-full px-4 py-3 border rounded-lg shadow-sm transition-all duration-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
+                                            errors.enrollment_start_date
+                                                ? 'border-red-300 bg-red-50'
+                                                : 'border-gray-300 hover:border-gray-400 focus:bg-white'
+                                        }`}
+                                    />
+                                    {errors.enrollment_start_date && (
+                                        <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                                            <AlertCircle className="w-4 h-4" />
+                                            {errors.enrollment_start_date}
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="group">
+                                    <label htmlFor="enrollment_end_date" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                        <Calendar className="w-4 h-4 text-gray-500" />
+                                        Enrollment End Date <span className="text-gray-500 text-xs">(Optional)</span>
+                                    </label>
+                                    <input
+                                        id="enrollment_end_date"
+                                        type="date"
+                                        value={data.enrollment_end_date}
+                                        onChange={(e) => setData('enrollment_end_date', e.target.value)}
+                                        className={`block w-full px-4 py-3 border rounded-lg shadow-sm transition-all duration-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
+                                            errors.enrollment_end_date
+                                                ? 'border-red-300 bg-red-50'
+                                                : 'border-gray-300 hover:border-gray-400 focus:bg-white'
+                                        }`}
+                                    />
+                                    {errors.enrollment_end_date && (
+                                        <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                                            <AlertCircle className="w-4 h-4" />
+                                            {errors.enrollment_end_date}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
 
@@ -342,7 +451,7 @@ export default function ProgramEdit({ program }: EditProgramProps) {
                             {/* Action Buttons */}
                             <div className="flex flex-col sm:flex-row justify-end gap-3 mt-8 pt-6 border-t border-gray-200">
                                 <Link
-                                    href={route('admin.programs.manage_index')}
+                                    href={route('staff.programs.manage_index')}
                                     className="inline-flex items-center justify-center px-6 py-3 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200"
                                     onClick={(e) => {
                                         if (hasChanges && !confirm('You have unsaved changes. Are you sure you want to leave?')) {
@@ -355,7 +464,7 @@ export default function ProgramEdit({ program }: EditProgramProps) {
                                 </Link>
                                 <button
                                     type="submit"
-                                    disabled={processing || !hasChanges}
+                                    disabled={processing || !isFormValid}
                                     className="inline-flex items-center justify-center px-6 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105"
                                 >
                                     {processing ? (

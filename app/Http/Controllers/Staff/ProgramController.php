@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Staff;
 
 use App\Http\Controllers\Controller;
 use App\Models\Program; // Import the Program model
@@ -48,7 +48,7 @@ class ProgramController extends Controller
         $programs = $query->orderBy('course_name') // Order alphabetically by program name
                           ->paginate(10); // Paginate with 10 items per page
 
-         return Inertia::render('Admin/Programs/Index', [ // <--- This path must be exact
+         return Inertia::render('Staff/Programs/Index', [ // <--- This path must be exact
         'programs' => $programs,
         'filters' => [
             'search' => $search,
@@ -62,7 +62,7 @@ class ProgramController extends Controller
      */
     public function create()
     {
-        return Inertia::render('Admin/Programs/Create');
+        return Inertia::render('Staff/Programs/Create');
     }
 
     /**
@@ -77,11 +77,13 @@ class ProgramController extends Controller
             'duration_days' => ['required', 'integer', 'min:1'],
             'description' => ['nullable', 'string'],
             'status' => ['required', 'string', Rule::in(['active', 'inactive'])],
+            'enrollment_start_date' => ['nullable', 'date'],
+            'enrollment_end_date' => ['nullable', 'date', 'after_or_equal:enrollment_start_date'],
         ]);
 
         try {
             Program::create($validatedData);
-            return redirect()->route('admin.programs.manage_index')->with('success', 'Program added successfully.');
+            return redirect()->route('staff.programs.manage_index')->with('success', 'Program added successfully.');
         } catch (\Exception $e) {
             Log::error('Error adding program: ' . $e->getMessage());
             return back()->withErrors(['error' => 'Failed to add program. Please try again.']);
@@ -93,7 +95,7 @@ class ProgramController extends Controller
      */
     public function edit(Program $program) // Laravel's route model binding automatically finds the program by ID
     {
-        return Inertia::render('Admin/Programs/Edit', [
+        return Inertia::render('Staff/Programs/Edit', [
             'program' => $program,
         ]);
     }
@@ -110,15 +112,18 @@ class ProgramController extends Controller
             'duration_days' => ['required', 'integer', 'min:1'],
             'description' => ['nullable', 'string'],
             'status' => ['required', 'string', Rule::in(['active', 'inactive'])],
+             'enrollment_start_date' => ['nullable', 'date'],
+             'enrollment_end_date' => ['nullable', 'date', 'after_or_equal:enrollment_start_date'],
         ]);
 
         try {
-            $program->update($validatedData);
-            return redirect()->route('admin.programs.manage_index')->with('success', 'Program updated successfully.');
-        } catch (\Exception $e) {
-            Log::error('Error updating program: ' . $e->getMessage());
-            return back()->withErrors(['error' => 'Failed to update program. Please try again.']);
-        }
+        $program->update($validatedData); // This line saves the changes
+        // Use with() to flash a success message
+        return redirect()->route('staff.programs.manage_index')->with('success', 'Program updated successfully.');
+    } catch (\Exception $e) {
+        Log::error('Error updating program: ' . $e->getMessage());
+        return back()->withErrors(['error' => 'Failed to update program. Please try again.']);
+    }
     }
 
     /**
@@ -131,7 +136,7 @@ class ProgramController extends Controller
             $newStatus = $program->status === 'active' ? 'inactive' : 'active';
             $program->update(['status' => $newStatus]);
 
-            return redirect()->route('admin.programs.manage_index')->with('success', 'Program status updated successfully to ' . $newStatus . '.');
+            return redirect()->route('staff.programs.manage_index')->with('success', 'Program status updated successfully to ' . $newStatus . '.');
         } catch (\Exception $e) {
             Log::error('Error toggling program status: ' . $e->getMessage());
             return back()->withErrors(['error' => 'Failed to change program status. Please try again.']);

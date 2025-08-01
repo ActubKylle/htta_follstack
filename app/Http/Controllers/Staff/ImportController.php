@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Staff;
 
 use App\Jobs\ImportStudentsJob; // You will create this next
 use Illuminate\Http\Request;
